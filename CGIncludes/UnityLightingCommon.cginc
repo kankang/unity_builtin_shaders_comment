@@ -6,20 +6,20 @@
 fixed4 _LightColor0;
 fixed4 _SpecColor;
 
-struct UnityLight
+struct UnityLight   // 直接光照
 {
-    half3 color;
-    half3 dir;
+    half3 color;    // 直接光照光的颜色
+    half3 dir;      // 直接光照的方向
     half  ndotl; // Deprecated: Ndotl is now calculated on the fly and is no longer stored. Do not used it.
 };
 
-struct UnityIndirect
+struct UnityIndirect    // 间接光照
 {
-    half3 diffuse;
-    half3 specular;
+    half3 diffuse;  // 间接光照的漫反射贡献量
+    half3 specular; // 间接光照的镜面反射贡献量
 };
 
-struct UnityGI
+struct UnityGI  // 全局光照
 {
     UnityLight light;
     UnityIndirect indirect;

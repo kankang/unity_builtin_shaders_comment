@@ -8,25 +8,25 @@
 #include "UnityGlobalIllumination.cginc"
 
 struct SurfaceOutput {
-    fixed3 Albedo;
-    fixed3 Normal;
-    fixed3 Emission;
-    half Specular;
-    fixed Gloss;
-    fixed Alpha;
+    fixed3 Albedo;      // 物体表面的漫反射颜色（反照率纹理采样）
+    fixed3 Normal;      // 物体表面的法线
+    fixed3 Emission;    // 物体的自发光颜色
+    half Specular;      // 物体的镜面反射系数，在[0, 1]范围
+    fixed Gloss;        // 物体的镜面高光亮度值
+    fixed Alpha;        // 物体的透明度
 };
 
 #ifndef USING_DIRECTIONAL_LIGHT
 #if defined (DIRECTIONAL_COOKIE) || defined (DIRECTIONAL)
-#define USING_DIRECTIONAL_LIGHT
+#define USING_DIRECTIONAL_LIGHT     // 使用了直接光照（直接光照、直接缓存）
 #endif
 #endif
 
 #if defined(UNITY_SHOULD_SAMPLE_SH) || defined(LIGHTMAP_ON) || defined(DYNAMICLIGHTMAP_ON)
-    #define UNITY_LIGHT_FUNCTION_APPLY_INDIRECT
+    #define UNITY_LIGHT_FUNCTION_APPLY_INDIRECT     // 使用了间接光照（球谐、光照纹理、动态光照纹理）
 #endif
 
-inline fixed4 UnityLambertLight (SurfaceOutput s, UnityLight light)
+inline fixed4 UnityLambertLight (SurfaceOutput s, UnityLight light) // lambert光照函数
 {
     fixed diff = max (0, dot (s.Normal, light.dir));
 
@@ -36,7 +36,7 @@ inline fixed4 UnityLambertLight (SurfaceOutput s, UnityLight light)
     return c;
 }
 
-inline fixed4 LightingLambert (SurfaceOutput s, UnityGI gi)
+inline fixed4 LightingLambert (SurfaceOutput s, UnityGI gi) // lambert光照模型，光照模型格式为LightingXXX
 {
     fixed4 c;
     c = UnityLambertLight (s, gi.light);
@@ -48,8 +48,8 @@ inline fixed4 LightingLambert (SurfaceOutput s, UnityGI gi)
     return c;
 }
 
-inline half4 LightingLambert_Deferred (SurfaceOutput s, UnityGI gi, out half4 outGBuffer0, out half4 outGBuffer1, out half4 outGBuffer2)
-{
+inline half4 LightingLambert_Deferred (SurfaceOutput s, UnityGI gi, out half4 outGBuffer0, out half4 outGBuffer1, out half4 outGBuffer2)    // 延迟渲染的lambert光照模型
+{ // 延迟渲染的lambert光照模型
     UnityStandardData data;
     data.diffuseColor   = s.Albedo;
     data.occlusion      = 1;

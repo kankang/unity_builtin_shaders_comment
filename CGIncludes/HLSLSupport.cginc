@@ -286,10 +286,10 @@ float4 texCUBEproj(samplerCUBE s, in float4 t)          { return texCUBE(s, t.xy
 #endif
 
 #if defined(SHADER_API_D3D11) || defined(UNITY_ENABLE_CBUFFER) || defined(SHADER_API_PSSL)
-#define CBUFFER_START(name) cbuffer name {
+#define CBUFFER_START(name) cbuffer name {  // D3D11把所有Shader变量进constant buffer中去。
 #define CBUFFER_END };
 #else
-// On specific platforms, like OpenGL, GLES3 and Metal, constant buffers may still be used for instancing
+// On specific platforms, like OpenGL, GLES3 and Metal, constant buffers may still be used for instancing 其他平台仍然使用实例
 #define CBUFFER_START(name)
 #define CBUFFER_END
 #endif
