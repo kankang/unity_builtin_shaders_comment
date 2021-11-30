@@ -3,14 +3,14 @@
 #ifndef UNITY_CG_INCLUDED
 #define UNITY_CG_INCLUDED
 
-#define UNITY_PI            3.14159265359f
-#define UNITY_TWO_PI        6.28318530718f
-#define UNITY_FOUR_PI       12.56637061436f
-#define UNITY_INV_PI        0.31830988618f
-#define UNITY_INV_TWO_PI    0.15915494309f
-#define UNITY_INV_FOUR_PI   0.07957747155f
-#define UNITY_HALF_PI       1.57079632679f
-#define UNITY_INV_HALF_PI   0.636619772367f
+#define UNITY_PI            3.14159265359f      // PI
+#define UNITY_TWO_PI        6.28318530718f      // 2 * PI
+#define UNITY_FOUR_PI       12.56637061436f     // 4 * PI
+#define UNITY_INV_PI        0.31830988618f      // 1 / PI
+#define UNITY_INV_TWO_PI    0.15915494309f      // 1 / (2*PI)
+#define UNITY_INV_FOUR_PI   0.07957747155f      // 1 / (4*PI)
+#define UNITY_HALF_PI       1.57079632679f      // PI / 2
+#define UNITY_INV_HALF_PI   0.636619772367f     // 1 / (PI/2)
 
 #define UNITY_HALF_MIN      6.103515625e-5  // 2^-14, the same value for 10, 11 and 16-bit: https://www.khronos.org/opengl/wiki/Small_Float_Formats
 
@@ -24,7 +24,7 @@
 #include "UnityShaderVariables.cginc"
 #include "UnityShaderUtilities.cginc"
 #include "UnityInstancing.cginc"
-
+// 定义Gamma颜色空间和Linear颜色空间的一些颜色数值
 #ifdef UNITY_COLORSPACE_GAMMA
 #define unity_ColorSpaceGrey fixed4(0.5, 0.5, 0.5, 0.5)
 #define unity_ColorSpaceDouble fixed4(2.0, 2.0, 2.0, 2.0)
@@ -42,7 +42,7 @@
 
 
 #if defined (DIRECTIONAL) || defined (DIRECTIONAL_COOKIE) || defined (POINT) || defined (SPOT) || defined (POINT_NOATT) || defined (POINT_COOKIE)
-#define USING_LIGHT_MULTI_COMPILE
+#define USING_LIGHT_MULTI_COMPILE   // 启用了光照（方向光、点光、聚光等）
 #endif
 
 #if defined(SHADER_API_D3D11) || defined(SHADER_API_PSSL) || defined(SHADER_API_METAL) || defined(SHADER_API_GLCORE) || defined(SHADER_API_GLES3) || defined(SHADER_API_VULKAN) || defined(SHADER_API_SWITCH) // D3D11, D3D12, XB1, PS4, iOS, macOS, tvOS, glcore, gles3, webgl2.0, Switch
@@ -56,36 +56,36 @@
 // These constants must be kept in sync with RGBMRanges.h
 #define LIGHTMAP_RGBM_SCALE 5.0
 #define EMISSIVE_RGBM_SCALE 97.0
-
+// 从CPU传给GPU基本的数据信息
 struct appdata_base {
-    float4 vertex : POSITION;
-    float3 normal : NORMAL;
-    float4 texcoord : TEXCOORD0;
-    UNITY_VERTEX_INPUT_INSTANCE_ID
+    float4 vertex : POSITION;       // 世界坐标下的顶点坐标
+    float3 normal : NORMAL;         // 顶点法线
+    float4 texcoord : TEXCOORD0;    // 顶点使用的第一层纹理坐标
+    UNITY_VERTEX_INPUT_INSTANCE_ID  // 顶点多例化ID
 };
-
+// 从CPU传给GPU带切线数据的信息
 struct appdata_tan {
-    float4 vertex : POSITION;
-    float4 tangent : TANGENT;
-    float3 normal : NORMAL;
-    float4 texcoord : TEXCOORD0;
-    UNITY_VERTEX_INPUT_INSTANCE_ID
+    float4 vertex : POSITION;       // 世界坐标下的顶点坐标
+    float4 tangent : TANGENT;       // 顶点切线
+    float3 normal : NORMAL;         // 顶点法线
+    float4 texcoord : TEXCOORD0;    // 顶点使用的第一层纹理坐标
+    UNITY_VERTEX_INPUT_INSTANCE_ID  // 顶点多例化ID
 };
-
+// 从CPU传给GPU的全部数据信息
 struct appdata_full {
-    float4 vertex : POSITION;
+    float4 vertex : POSITION;       // 世界坐标下的顶点坐标
     float4 tangent : TANGENT;
-    float3 normal : NORMAL;
-    float4 texcoord : TEXCOORD0;
-    float4 texcoord1 : TEXCOORD1;
-    float4 texcoord2 : TEXCOORD2;
-    float4 texcoord3 : TEXCOORD3;
-    fixed4 color : COLOR;
-    UNITY_VERTEX_INPUT_INSTANCE_ID
+    float3 normal : NORMAL;         // 顶点法线
+    float4 texcoord : TEXCOORD0;    // 顶点使用的第一层纹理坐标
+    float4 texcoord1 : TEXCOORD1;   // 顶点使用的第二层纹理坐标
+    float4 texcoord2 : TEXCOORD2;   // 顶点使用的第三层纹理坐标
+    float4 texcoord3 : TEXCOORD3;   // 顶点使用的第四层纹理坐标
+    fixed4 color : COLOR;           // 顶点颜色
+    UNITY_VERTEX_INPUT_INSTANCE_ID  // 顶点多例化ID
 };
 
 // Legacy for compatibility with existing shaders
-inline bool IsGammaSpace()
+inline bool IsGammaSpace()      // 是否启动了Gamma颜色空间
 {
     #ifdef UNITY_COLORSPACE_GAMMA
         return true;
@@ -93,7 +93,7 @@ inline bool IsGammaSpace()
         return false;
     #endif
 }
-
+// 把颜色从Gamma颜色空间精确地变换到线性颜色空间
 inline float GammaToLinearSpaceExact (float value)
 {
     if (value <= 0.04045F)
@@ -103,7 +103,7 @@ inline float GammaToLinearSpaceExact (float value)
     else
         return pow(value, 2.2F);
 }
-
+// 使用近似模拟的函数把sGRB颜色从Gamma颜色空间变换到线性颜色空间（CIE-XYZ）
 inline half3 GammaToLinearSpace (half3 sRGB)
 {
     // Approximate version from http://chilliant.blogspot.com.au/2012/08/srgb-approximations-for-hlsl.html?m=1
@@ -112,7 +112,7 @@ inline half3 GammaToLinearSpace (half3 sRGB)
     // Precise version, useful for debugging.
     //return half3(GammaToLinearSpaceExact(sRGB.r), GammaToLinearSpaceExact(sRGB.g), GammaToLinearSpaceExact(sRGB.b));
 }
-
+// 把颜色从线性颜色空间精确地变换到Gamma颜色空间
 inline float LinearToGammaSpaceExact (float value)
 {
     if (value <= 0.0F)
@@ -124,7 +124,7 @@ inline float LinearToGammaSpaceExact (float value)
     else
         return pow(value, 0.45454545F);
 }
-
+// 使用近似模拟的函数把颜色从线性颜色空间变换到Gamma颜色空间
 inline half3 LinearToGammaSpace (half3 linRGB)
 {
     linRGB = max(linRGB, half3(0.h, 0.h, 0.h));
@@ -135,19 +135,19 @@ inline half3 LinearToGammaSpace (half3 linRGB)
     //return half3(LinearToGammaSpaceExact(linRGB.r), LinearToGammaSpaceExact(linRGB.g), LinearToGammaSpaceExact(linRGB.b));
 }
 
-// Tranforms position from world to homogenous space
+// Tranforms position from world to homogenous space 世界空间的点转换至裁剪空间
 inline float4 UnityWorldToClipPos( in float3 pos )
 {
     return mul(UNITY_MATRIX_VP, float4(pos, 1.0));
 }
 
-// Tranforms position from view to homogenous space
+// Tranforms position from view to homogenous space 观察空间的点转换至裁剪空间
 inline float4 UnityViewToClipPos( in float3 pos )
 {
     return mul(UNITY_MATRIX_P, float4(pos, 1.0));
 }
 
-// Tranforms position from object to camera space
+// Tranforms position from object to camera space 模型空间的点转换至观察空间
 inline float3 UnityObjectToViewPos( in float3 pos )
 {
     return mul(UNITY_MATRIX_V, mul(unity_ObjectToWorld, float4(pos, 1.0))).xyz;
@@ -157,79 +157,79 @@ inline float3 UnityObjectToViewPos(float4 pos) // overload for float4; avoids "i
     return UnityObjectToViewPos(pos.xyz);
 }
 
-// Tranforms position from world to camera space
+// Tranforms position from world to camera space 世界空间的点转换至观察空间
 inline float3 UnityWorldToViewPos( in float3 pos )
 {
     return mul(UNITY_MATRIX_V, float4(pos, 1.0)).xyz;
 }
 
-// Transforms direction from object to world space
+// Transforms direction from object to world space 模型空间的方向转换至世界空间
 inline float3 UnityObjectToWorldDir( in float3 dir )
 {
     return normalize(mul((float3x3)unity_ObjectToWorld, dir));
 }
 
-// Transforms direction from world to object space
+// Transforms direction from world to object space 世界空间的方向转换至模型空间
 inline float3 UnityWorldToObjectDir( in float3 dir )
 {
     return normalize(mul((float3x3)unity_WorldToObject, dir));
 }
 
-// Transforms normal from object to world space
+// Transforms normal from object to world space 模型空间的法线转换至世界空间
 inline float3 UnityObjectToWorldNormal( in float3 norm )
 {
-#ifdef UNITY_ASSUME_UNIFORM_SCALING
+#ifdef UNITY_ASSUME_UNIFORM_SCALING  // 等比缩放，即x,y,z缩放相同，那么可以直接转换至世界空间
     return UnityObjectToWorldDir(norm);
-#else
+#else  // 非等比缩放，为了保持法线方向的正确性，需要做如下矩阵变换：
     // mul(IT_M, norm) => mul(norm, I_M) => {dot(norm, I_M.col0), dot(norm, I_M.col1), dot(norm, I_M.col2)}
-    return normalize(mul(norm, (float3x3)unity_WorldToObject));
+    return normalize(mul(norm, (float3x3)unity_WorldToObject)); // 参考：https://www.freesion.com/article/8712512300/
 #endif
 }
 
-// Computes world space light direction, from world space position
+// Computes world space light direction, from world space position 世界坐标系下，通过灯光位置计算灯光方向
 inline float3 UnityWorldSpaceLightDir( in float3 worldPos )
 {
-    #ifndef USING_LIGHT_MULTI_COMPILE
+    #ifndef USING_LIGHT_MULTI_COMPILE  // 未启用光照
         return _WorldSpaceLightPos0.xyz - worldPos * _WorldSpaceLightPos0.w;
-    #else
+    #else // 启用了光照
         #ifndef USING_DIRECTIONAL_LIGHT
-        return _WorldSpaceLightPos0.xyz - worldPos;
-        #else
-        return _WorldSpaceLightPos0.xyz;
+        return _WorldSpaceLightPos0.xyz - worldPos;     // 非方向光计算光位置指向顶点世界坐标的方向
+        #else 
+        return _WorldSpaceLightPos0.xyz;  // 方向光直接返回世界空间中光的位置
         #endif
     #endif
 }
 
-// Computes world space light direction, from object space position
-// *Legacy* Please use UnityWorldSpaceLightDir instead
+// Computes world space light direction, from object space position 从模型空间上的位置计算世界空间光的方向
+// *Legacy* Please use UnityWorldSpaceLightDir instead 已废弃，使用UnityWorldSpaceLightDir
 inline float3 WorldSpaceLightDir( in float4 localPos )
 {
     float3 worldPos = mul(unity_ObjectToWorld, localPos).xyz;
     return UnityWorldSpaceLightDir(worldPos);
 }
 
-// Computes object space light direction
+// Computes object space light direction 计算模型空间光的方向
 inline float3 ObjSpaceLightDir( in float4 v )
 {
-    float3 objSpaceLightPos = mul(unity_WorldToObject, _WorldSpaceLightPos0).xyz;
-    #ifndef USING_LIGHT_MULTI_COMPILE
+    float3 objSpaceLightPos = mul(unity_WorldToObject, _WorldSpaceLightPos0).xyz;   // 计算模型空间中灯的位置
+    #ifndef USING_LIGHT_MULTI_COMPILE   // 未启用光照
         return objSpaceLightPos.xyz - v.xyz * _WorldSpaceLightPos0.w;
-    #else
+    #else  // 启用了光照
         #ifndef USING_DIRECTIONAL_LIGHT
-        return objSpaceLightPos.xyz - v.xyz;
+        return objSpaceLightPos.xyz - v.xyz; // 非方向光计算光位置指向顶点位置的方向
         #else
-        return objSpaceLightPos.xyz;
+        return objSpaceLightPos.xyz;   // 方向光返回模型空间中光的位置
         #endif
     #endif
 }
 
-// Computes world space view direction, from object space position
+// Computes world space view direction, from object (world???) space position 世界空间中某位置与观察位置（摄像机）的连线向量
 inline float3 UnityWorldSpaceViewDir( in float3 worldPos )
 {
     return _WorldSpaceCameraPos.xyz - worldPos;
 }
 
-// Computes world space view direction, from object space position
+// Computes world space view direction, from object space position 模型空间中某位置与观察位置（摄像机）的连线向量
 // *Legacy* Please use UnityWorldSpaceViewDir instead
 inline float3 WorldSpaceViewDir( in float4 localPos )
 {
@@ -237,51 +237,51 @@ inline float3 WorldSpaceViewDir( in float4 localPos )
     return UnityWorldSpaceViewDir(worldPos);
 }
 
-// Computes object space view direction
+// Computes object space view direction 模型空间中观察位置（摄像机）与某个位置的连线向量
 inline float3 ObjSpaceViewDir( in float4 v )
 {
     float3 objSpaceCameraPos = mul(unity_WorldToObject, float4(_WorldSpaceCameraPos.xyz, 1)).xyz;
     return objSpaceCameraPos - v.xyz;
 }
 
-// Declares 3x3 matrix 'rotation', filled with tangent space basis
+// Declares 3x3 matrix 'rotation', filled with tangent space basis 定义切线空间的标准正交基，由顶点的切线、法线和副法线组成
 #define TANGENT_SPACE_ROTATION \
     float3 binormal = cross( normalize(v.normal), normalize(v.tangent.xyz) ) * v.tangent.w; \
     float3x3 rotation = float3x3( v.tangent.xyz, binormal, v.normal )
 
 
 
-// Used in ForwardBase pass: Calculates diffuse lighting from 4 point lights, with data packed in a special way.
-float3 Shade4PointLights (
-    float4 lightPosX, float4 lightPosY, float4 lightPosZ,
-    float3 lightColor0, float3 lightColor1, float3 lightColor2, float3 lightColor3,
-    float4 lightAttenSq,
-    float3 pos, float3 normal)
+// Used in ForwardBase pass: Calculates diffuse lighting from 4 point lights, with data packed in a special way. 前向渲染通道
+float3 Shade4PointLights (  // 计算顶点被4个点光源照亮时的漫反射效果（Lambert lighting model）
+    float4 lightPosX, float4 lightPosY, float4 lightPosZ,   // 传入4个点光源的x,y,z坐标
+    float3 lightColor0, float3 lightColor1, float3 lightColor2, float3 lightColor3, // 传入4个点光源的RGB值
+    float4 lightAttenSq,    // 传入4个点光源的二次项衰减系数
+    float3 pos, float3 normal)  // 顶点位置、法线
 {
-    // to light vectors
-    float4 toLightX = lightPosX - pos.x;
-    float4 toLightY = lightPosY - pos.y;
-    float4 toLightZ = lightPosZ - pos.z;
-    // squared lengths
-    float4 lengthSq = 0;
-    lengthSq += toLightX * toLightX;
-    lengthSq += toLightY * toLightY;
-    lengthSq += toLightZ * toLightZ;
-    // don't produce NaNs if some vertex position overlaps with the light
+    // to light vectors 计算顶点到每一个光源的距离x,y,z
+    float4 toLightX = lightPosX - pos.x;        // | x0, x1, x2, x3 |
+    float4 toLightY = lightPosY - pos.y;        // | y0, y1, y2, y3 |
+    float4 toLightZ = lightPosZ - pos.z;        // | z0, z1, z2, z3 |
+    // squared lengths 计算顶点到每一个光源的距离的平方和   (x1, y1) * (x2, y2) = (x1 * x2, y1 * y2)
+    float4 lengthSq = 0;                        //                                                  | x0^2 + y0^2 + z0^2 |
+    lengthSq += toLightX * toLightX;            // | x0 * x0, x1 * x1, x2 * x2, x3 * x3 |           | x1^2 + y1^2 + z1^2 |
+    lengthSq += toLightY * toLightY;            // | y0 * y0, y1 * y1, y2 * y2, y3 * y3 |    ==>>   | x2^2 + y2^2 + z2^2 |
+    lengthSq += toLightZ * toLightZ;            // | z0 * z0, z1 * z1, z2 * z2, z3 * z3 |           | x3^2 + y3^2 + z3^2 |
+    // don't produce NaNs if some vertex position overlaps with the light 防止光源过近，距离为0
     lengthSq = max(lengthSq, 0.000001);
 
-    // NdotL
+    // NdotL 计算顶点到4个点光源的向量与顶点法线的点乘
     float4 ndotl = 0;
-    ndotl += toLightX * normal.x;
-    ndotl += toLightY * normal.y;
-    ndotl += toLightZ * normal.z;
-    // correct NdotL
-    float4 corr = rsqrt(lengthSq);
-    ndotl = max (float4(0,0,0,0), ndotl * corr);
-    // attenuation
+    ndotl += toLightX * normal.x;        // | x0 * nx, x1 * nx, x2 * nx, x3 * nx |
+    ndotl += toLightY * normal.y;        // | y0 * ny, y1 * ny, y2 * ny, y3 * ny |
+    ndotl += toLightZ * normal.z;        // | z0 * nz, z1 * nz, z2 * nz, z3 * nz |
+    // correct NdotL 归一化
+    float4 corr = rsqrt(lengthSq);      // 平方根的倒数，牛顿-拉夫森（Newton-Rapson)迭代法，效率比求平方根要高
+    ndotl = max (float4(0,0,0,0), ndotl * corr);    // Lambert Lighting
+    // attenuation 衰减
     float4 atten = 1.0 / (1.0 + lengthSq * lightAttenSq);
-    float4 diff = ndotl * atten;
-    // final color
+    float4 diff = ndotl * atten;    // 强度
+    // final color 最终颜色为四盏灯的颜色*强度之和
     float3 col = 0;
     col += lightColor0 * diff.x;
     col += lightColor1 * diff.y;
@@ -291,15 +291,15 @@ float3 Shade4PointLights (
 }
 
 // Used in Vertex pass: Calculates diffuse lighting from lightCount lights. Specifying true to spotLight is more expensive
-// to calculate but lights are treated as spot lights otherwise they are treated as point lights.
+// to calculate but lights are treated as spot lights otherwise they are treated as point lights. 计算所有光源产生的漫反射效果
 float3 ShadeVertexLightsFull (float4 vertex, float3 normal, int lightCount, bool spotLight)
 {
-    float3 viewpos = UnityObjectToViewPos (vertex.xyz);
-    float3 viewN = normalize (mul ((float3x3)UNITY_MATRIX_IT_MV, normal));
+    float3 viewpos = UnityObjectToViewPos (vertex.xyz);     // 顶点转换到观察空间
+    float3 viewN = normalize (mul ((float3x3)UNITY_MATRIX_IT_MV, normal));  // 法线需要右乘逆转置矩阵
 
-    float3 lightColor = UNITY_LIGHTMODEL_AMBIENT.xyz;
+    float3 lightColor = UNITY_LIGHTMODEL_AMBIENT.xyz;   // 初始光照颜色为环境光
     for (int i = 0; i < lightCount; i++) {
-        float3 toLight = unity_LightPosition[i].xyz - viewpos.xyz * unity_LightPosition[i].w;
+        float3 toLight = unity_LightPosition[i].xyz - viewpos.xyz * unity_LightPosition[i].w; // 方向光w为0，非方向光w为1
         float lengthSq = dot(toLight, toLight);
 
         // don't produce NaNs if some vertex position overlaps with the light
@@ -307,20 +307,20 @@ float3 ShadeVertexLightsFull (float4 vertex, float3 normal, int lightCount, bool
 
         toLight *= rsqrt(lengthSq);
 
-        float atten = 1.0 / (1.0 + lengthSq * unity_LightAtten[i].z);
+        float atten = 1.0 / (1.0 + lengthSq * unity_LightAtten[i].z);   // UnityShaderVariabls.cginc: L129~L133
         if (spotLight)
-        {
-            float rho = max (0, dot(toLight, unity_SpotDirection[i].xyz));
-            float spotAtt = (rho - unity_LightAtten[i].x) * unity_LightAtten[i].y;
-            atten *= saturate(spotAtt);
+        { // 聚光灯计算原理: https://zhuanlan.zhihu.com/p/150570369
+            float rho = max (0, dot(toLight, unity_SpotDirection[i].xyz));  // toLight与unity_SportDirection方向夹角的余弦值，cos(p)
+            float spotAtt = (rho - unity_LightAtten[i].x) * unity_LightAtten[i].y;  // [cos(p) - cos(angle / 2)] / [cos(angle / 4) - cos(angle/2)]
+            atten *= saturate(spotAtt);     // 确保衰减系统在[0, 1]范围内, 顶点与聚光灯夹角在1/4张角内时，不存在衰减，为1；大于1/2张角时，衰减成0
         }
 
-        float diff = max (0, dot (viewN, toLight));
+        float diff = max (0, dot (viewN, toLight));     // Lambert Lighting
         lightColor += unity_LightColor[i].rgb * (diff * atten);
     }
     return lightColor;
 }
-
+// 对指定4个非聚光灯光源进行光照计算（聚光灯的计算消耗较高）
 float3 ShadeVertexLights (float4 vertex, float3 normal)
 {
     return ShadeVertexLightsFull (vertex, normal, 4, false);
@@ -440,31 +440,31 @@ half3 ShadeSH12Order (half4 normal)
     return res;
 }
 
-// Transforms 2D UV by scale/bias property
-#define TRANSFORM_TEX(tex,name) (tex.xy * name##_ST.xy + name##_ST.zw)
+// Transforms 2D UV by scale/bias property 定义四维向量，xy表示Tiling，zw表示offsset
+#define TRANSFORM_TEX(tex,name) (tex.xy * name##_ST.xy + name##_ST.zw)  // 坐标：uv * tiling + offset
 
 // Deprecated. Used to transform 4D UV by a fixed function texture matrix. Now just returns the passed UV.
 #define TRANSFORM_UV(idx) v.texcoord.xy
 
 
-
+// 定义顶点光照结构体，实现最低保真度的光照且不支持实时阴影的渲染途径
 struct v2f_vertex_lit {
-    float2 uv   : TEXCOORD0;
-    fixed4 diff : COLOR0;
-    fixed4 spec : COLOR1;
+    float2 uv   : TEXCOORD0;    // 纹理坐标
+    fixed4 diff : COLOR0;       // 漫反射颜色
+    fixed4 spec : COLOR1;       // 镜面反射颜色
 };
 
 inline fixed4 VertexLight( v2f_vertex_lit i, sampler2D mainTex )
 {
     fixed4 texcol = tex2D( mainTex, i.uv );
     fixed4 c;
-    c.xyz = ( texcol.xyz * i.diff.xyz + i.spec.xyz * texcol.a );
-    c.w = texcol.w * i.diff.w;
+    c.xyz = ( texcol.xyz * i.diff.xyz + i.spec.xyz * texcol.a );    // 漫反射颜色*纹理颜色 + 镜面反射颜色*纹理alpha
+    c.w = texcol.w * i.diff.w;  // alpha为纹理alpha*漫反射的alpha
     return c;
 }
 
 
-// Calculates UV offset for parallax bump mapping
+// Calculates UV offset for parallax bump mapping 计算视差纹理的uv偏移
 inline float2 ParallaxOffset( half h, half height, half3 viewDir )
 {
     h = h * height - height/2.0;
@@ -473,45 +473,45 @@ inline float2 ParallaxOffset( half h, half height, half3 viewDir )
     return h * (v.xy / v.z);
 }
 
-// Converts color to luminance (grayscale)
+// Converts color to luminance (grayscale) 将颜色转换成亮度值（灰度值）
 inline half Luminance(half3 rgb)
 {
-    return dot(rgb, unity_ColorSpaceLuminance.rgb);
+    return dot(rgb, unity_ColorSpaceLuminance.rgb); 
 }
 
-// Convert rgb to luminance
+// Convert rgb to luminance 把线性空间中的RGB转换成亮度值。 RGB ===>>> CIE1931-Yxy
 // with rgb in linear space with sRGB primaries and D65 white point
 half LinearRgbToLuminance(half3 linearRgb)
 {
-    return dot(linearRgb, half3(0.2126729f,  0.7151522f, 0.0721750f));
+    return dot(linearRgb, half3(0.2126729f,  0.7151522f, 0.0721750f));  // Y = 0.2126729 * R + 0.7151522 * G + 0.0721750 * B
 }
-
-half4 UnityEncodeRGBM (half3 color, float maxRGBM)
+// 将原颜色转换成RGBM编码，HDRM/LogLUV颜色编码格式：https://graphicrants.blogspot.com/2009/04/rgbm-color-encoding.html
+half4 UnityEncodeRGBM (half3 color, float maxRGBM) // 如(0.1, 0.2, 0.5), 4
 {
-    float kOneOverRGBMMaxRange = 1.0 / maxRGBM;
+    float kOneOverRGBMMaxRange = 1.0 / maxRGBM;     // 定义一个最大的范围maxRGBM，整个颜色的范围在[0, maxRGBM]之间  （0.25）
     const float kMinMultiplier = 2.0 * 1e-2;
 
-    float3 rgb = color * kOneOverRGBMMaxRange;
-    float alpha = max(max(rgb.r, rgb.g), max(rgb.b, kMinMultiplier));
-    alpha = ceil(alpha * 255.0) / 255.0;
+    float3 rgb = color * kOneOverRGBMMaxRange;  // 颜色值除maxRGBM (0.025, 0.05, 0.1)
+    float alpha = max(max(rgb.r, rgb.g), max(rgb.b, kMinMultiplier));   // 找出rgb中最大的值 (0.1)
+    alpha = ceil(alpha * 255.0) / 255.0;    // 最大的值向上取整  (0.10196)
 
     // Division-by-zero warning from d3d9, so make compiler happy.
     alpha = max(alpha, kMinMultiplier);
 
-    return half4(rgb / alpha, alpha);
+    return half4(rgb / alpha, alpha);   // 计算RGBM的值   (0.24519, 0.49038, 0.9807, 0.10196)
 }
 
-// Decodes HDR textures
-// handles dLDR, RGBM formats
+// Decodes HDR textures 解码HDR
+// handles dLDR, RGBM formats，可处理dLDR和RGBM格式，dLDR（double low dynamic range）双重低动态范围，将[0,2]范围的亮度值到[0,1]上
 inline half3 DecodeHDR (half4 data, half4 decodeInstructions)
 {
     // Take into account texture alpha if decodeInstructions.w is true(the alpha value affects the RGB channels)
-    half alpha = decodeInstructions.w * (data.a - 1.0) + 1.0;
+    half alpha = decodeInstructions.w * (data.a - 1.0) + 1.0;   // 如果w分量为1，则data.alpha为纹理的alpha值，否则alpha为1
 
     // If Linear mode is not supported we can skip exponent part
     #if defined(UNITY_COLORSPACE_GAMMA)
         return (decodeInstructions.x * alpha) * data.rgb;
-    #else
+    #else    // Linear空间
     #   if defined(UNITY_USE_NATIVE_HDR)
             return decodeInstructions.x * data.rgb; // Multiplier for future HDRI relative to absolute conversion.
     #   else
@@ -520,41 +520,41 @@ inline half3 DecodeHDR (half4 data, half4 decodeInstructions)
     #endif
 }
 
-// Decodes HDR textures
-// handles dLDR, RGBM formats
+// Decodes HDR textures 将RGBM颜色解码成一个每通道8位的RGB颜色
+// handles RGBM formats
 inline half3 DecodeLightmapRGBM (half4 data, half4 decodeInstructions)
 {
     // If Linear mode is not supported we can skip exponent part
-    #if defined(UNITY_COLORSPACE_GAMMA)
+    #if defined(UNITY_COLORSPACE_GAMMA)  // gamma空间 unity_Lightmap_HDR = (5.0, 1.0, 0.0, 0.0)
     # if defined(UNITY_FORCE_LINEAR_READ_FOR_RGBM)
-        return (decodeInstructions.x * data.a) * sqrt(data.rgb);
+        return (decodeInstructions.x * data.a) * sqrt(data.rgb);    // 在gamma空间解码线性空间的颜色
     # else
-        return (decodeInstructions.x * data.a) * data.rgb;
+        return (decodeInstructions.x * data.a) * data.rgb;  // 解码颜色
     # endif
-    #else
+    #else   // Linear空间  unity_Lightmap_HDR = (pow(5.0, 2.2), 2.2, 0.0, 0.0)  pow(5.0, 2.2) = 34.49
         return (decodeInstructions.x * pow(data.a, decodeInstructions.y)) * data.rgb;
     #endif
 }
 
 // Decodes doubleLDR encoded lightmaps.
 inline half3 DecodeLightmapDoubleLDR( fixed4 color, half4 decodeInstructions)
-{
+{   // unity_Lightmap_HDR = Gamma (2.0, 1.0, 0.0, 0.0) / Linear (4.59, 1.0, 0.0, 0.0)
     // decodeInstructions.x contains 2.0 when gamma color space is used or pow(2.0, 2.2) = 4.59 when linear color space is used on mobile platforms
     return decodeInstructions.x * color.rgb;
 }
-
+// 解码Lightmap有三个预定义的宏分支
 inline half3 DecodeLightmap( fixed4 color, half4 decodeInstructions)
 {
-#if defined(UNITY_LIGHTMAP_DLDR_ENCODING)
-    return DecodeLightmapDoubleLDR(color, decodeInstructions);
-#elif defined(UNITY_LIGHTMAP_RGBM_ENCODING)
-    return DecodeLightmapRGBM(color, decodeInstructions);
-#else //defined(UNITY_LIGHTMAP_FULL_HDR)
-    return color.rgb;
+#if defined(UNITY_LIGHTMAP_DLDR_ENCODING)   // 使用DLDR格式解码
+    return DecodeLightmapDoubleLDR(color, decodeInstructions);  // L540
+#elif defined(UNITY_LIGHTMAP_RGBM_ENCODING) // 使用RGBM格式解码
+    return DecodeLightmapRGBM(color, decodeInstructions); // L525
+#else //defined(UNITY_LIGHTMAP_FULL_HDR) 当启用标准HDR时直接返回rgb不做额外处理
+    return color.rgb;   // unity_Lightmap_HDR = (1.0, 1.0, 0.0, 0.0)
 #endif
 }
 
-half4 unity_Lightmap_HDR;
+half4 unity_Lightmap_HDR;   // 不同预定义有不同的值，应用着以上各个函数的decodeInstructions
 
 inline half3 DecodeLightmap( fixed4 color )
 {

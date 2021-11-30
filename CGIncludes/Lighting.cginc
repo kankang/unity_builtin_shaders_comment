@@ -42,7 +42,7 @@ inline fixed4 LightingLambert (SurfaceOutput s, UnityGI gi) // lambert光照模�
     c = UnityLambertLight (s, gi.light);
 
     #ifdef UNITY_LIGHT_FUNCTION_APPLY_INDIRECT
-        c.rgb += s.Albedo * gi.indirect.diffuse;
+        c.rgb += s.Albedo * gi.indirect.diffuse;    // 增加间接光照
     #endif
 
     return c;
@@ -86,7 +86,7 @@ inline fixed4 LightingLambert_PrePass (SurfaceOutput s, half4 light)
 
 // NOTE: some intricacy in shader compiler on some GLES2.0 platforms (iOS) needs 'viewDir' & 'h'
 // to be mediump instead of lowp, otherwise specular highlight becomes too bright.
-inline fixed4 UnityBlinnPhongLight (SurfaceOutput s, half3 viewDir, UnityLight light)
+inline fixed4 UnityBlinnPhongLight (SurfaceOutput s, half3 viewDir, UnityLight light)   // BlinnPhong光照函数
 {
     half3 h = normalize (light.dir + viewDir);
 
@@ -101,7 +101,7 @@ inline fixed4 UnityBlinnPhongLight (SurfaceOutput s, half3 viewDir, UnityLight l
 
     return c;
 }
-
+// BlinnPhong光照模型，光照模型格式为LightingXXX
 inline fixed4 LightingBlinnPhong (SurfaceOutput s, half3 viewDir, UnityGI gi)
 {
     fixed4 c;
@@ -113,7 +113,7 @@ inline fixed4 LightingBlinnPhong (SurfaceOutput s, half3 viewDir, UnityGI gi)
 
     return c;
 }
-
+// 延迟渲染的BlinnPhong光照模型
 inline half4 LightingBlinnPhong_Deferred (SurfaceOutput s, half3 viewDir, UnityGI gi, out half4 outGBuffer0, out half4 outGBuffer1, out half4 outGBuffer2)
 {
     UnityStandardData data;

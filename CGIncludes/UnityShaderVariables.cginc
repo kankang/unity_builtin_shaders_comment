@@ -126,9 +126,9 @@ CBUFFER_START(UnityLighting)
 
 
     float4 unity_LightPosition[8]; // view-space vertex light positions (position,1), or (-direction,0) for directional lights.
-    // x = cos(spotAngle/2) or -1 for non-spot
+    // x = cos(spotAngle/2) or -1 for non-spot  聚光灯：1/2张角的余弦值
     // y = 1/cos(spotAngle/4) or 1 for non-spot，聚光厅的实际计算：(1/cos(spotAngle/4) - 1/cos(sportAngle/2))的倒数，如果前者差为0，y = 1
-    // z = quadratic attenuation
+    // z = quadratic attenuation 二次项衰减系数
     // w = range*range
     half4 unity_LightAtten[8];      // 8个点光源的衰减
     float4 unity_SpotDirection[8]; // view-space spot light directions, or (0,0,1,0) for non-spot
