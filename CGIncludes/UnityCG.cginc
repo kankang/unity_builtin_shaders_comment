@@ -561,12 +561,12 @@ inline half3 DecodeLightmap( fixed4 color )
     return DecodeLightmap( color, unity_Lightmap_HDR );
 }
 
-half4 unity_DynamicLightmap_HDR;
+half4 unity_DynamicLightmap_HDR;    // 动态的LightMap，其他同上
 
-// Decodes Enlighten RGBM encoded lightmaps
-// NOTE: Enlighten dynamic texture RGBM format is _different_ from standard Unity HDR textures
-// (such as Baked Lightmaps, Reflection Probes and IBL images)
-// Instead Enlighten provides RGBM texture in _Linear_ color space with _different_ exponent.
+// Decodes Enlighten RGBM encoded lightmaps 对实时生成的光照贴图进行解码
+// NOTE: Enlighten dynamic texture RGBM format is _different_ from standard Unity HDR textures 格式不同于一般的unity HDR纹理
+// (such as Baked Lightmaps, Reflection Probes and IBL images) 例如，烘焙式光贴图、反射用光探针、还有IBL图像等
+// Instead Enlighten provides RGBM texture in _Linear_ color space with _different_ exponent. Englithen渲染器的RGBM格式纹理是在Linear空间中定义的，使用了不同的指数操作
 // WARNING: 3 pow operations, might be very expensive for mobiles!
 inline half3 DecodeRealtimeLightmap( fixed4 color )
 {
@@ -577,38 +577,38 @@ inline half3 DecodeRealtimeLightmap( fixed4 color )
     return pow ((unity_DynamicLightmap_HDR.x * color.a) * color.rgb, unity_DynamicLightmap_HDR.y);
 #endif
 }
-
-inline half3 DecodeDirectionalLightmap (half3 color, fixed4 dirTex, half3 normalWorld)
+// 解码方向光贴图
+inline half3 DecodeDirectionalLightmap (half3 color, fixed4 dirTex, half3 normalWorld)  // 颜色、方向纹理采样点，法线
 {
-    // In directional (non-specular) mode Enlighten bakes dominant light direction
-    // in a way, that using it for half Lambert and then dividing by a "rebalancing coefficient"
-    // gives a result close to plain diffuse response lightmaps, but normalmapped.
+    // In directional (non-specular) mode Enlighten bakes dominant light direction 定向光照贴图，是原始光照贴图的增强实现
+    // in a way, that using it for half Lambert and then dividing by a "rebalancing coefficient" 在某种程度上，使用半兰勃特除以方向性的系数得到近似的漫反射映射
+    // gives a result close to plain diffuse response lightmaps, but normalmapped. 
 
     // Note that dir is not unit length on purpose. Its length is "directionality", like
     // for the directional specular lightmaps.
 
-    half halfLambert = dot(normalWorld, dirTex.xyz - 0.5) + 0.5;
+    half halfLambert = dot(normalWorld, dirTex.xyz - 0.5) + 0.5;    // 半Lambert
 
-    return color * halfLambert / max(1e-4h, dirTex.w);
+    return color * halfLambert / max(1e-4h, dirTex.w);  // w分量用来控制该点上辐射入射度的方向性，即被dominant方向影响的程度
 }
 
-// Encoding/decoding [0..1) floats into 8 bit/channel RGBA. Note that 1.0 will not be encoded properly.
+// Encoding/decoding [0..1) floats into 8 bit/channel RGBA. Note that 1.0 will not be encoded properly. 把[0..1)内的浮点数编码成一个float4类型的RGBA值
 inline float4 EncodeFloatRGBA( float v )
 {
     float4 kEncodeMul = float4(1.0, 255.0, 65025.0, 16581375.0);
     float kEncodeBit = 1.0/255.0;
     float4 enc = kEncodeMul * v;
-    enc = frac (enc);
+    enc = frac (enc);   // 只保留整数部分
     enc -= enc.yzww * kEncodeBit;
     return enc;
 }
-inline float DecodeFloatRGBA( float4 enc )
+inline float DecodeFloatRGBA( float4 enc )  // 把一个float4类型的RGBA纹素值解码成一个float类型的浮点数
 {
     float4 kDecodeDot = float4(1.0, 1/255.0, 1/65025.0, 1/16581375.0);
     return dot( enc, kDecodeDot );
 }
 
-// Encoding/decoding [0..1) floats into 8 bit/channel RG. Note that 1.0 will not be encoded properly.
+// Encoding/decoding [0..1) floats into 8 bit/channel RG. Note that 1.0 will not be encoded properly. 只计算GB两个通道
 inline float2 EncodeFloatRG( float v )
 {
     float2 kEncodeMul = float2(1.0, 255.0);
@@ -625,14 +625,14 @@ inline float DecodeFloatRG( float2 enc )
 }
 
 
-// Encoding/decoding view space normals into 2D 0..1 vector
+// Encoding/decoding view space normals into 2D 0..1 vector 使用球极算法将观察空间的法线转换成2D的纹理坐标
 inline float2 EncodeViewNormalStereo( float3 n )
 {
-    float kScale = 1.7777;
+    float kScale = 1.7777;      // 16:9
     float2 enc;
-    enc = n.xy / (n.z+1);
+    enc = n.xy / (n.z+1);  // (X,Y) = (x/(z+1), y/(z+1))
     enc /= kScale;
-    enc = enc*0.5+0.5;
+    enc = enc*0.5+0.5;  // [-1, 1] ==> [0,1]
     return enc;
 }
 inline float3 DecodeViewNormalStereo( float4 enc4 )
@@ -645,7 +645,7 @@ inline float3 DecodeViewNormalStereo( float4 enc4 )
     n.z = g-1;
     return n;
 }
-
+// 把float3类型的法线编码转到float4类型的前两个分量xy，把深度值编码进后两分量zw
 inline float4 EncodeDepthNormal( float depth, float3 normal )
 {
     float4 enc;
@@ -659,7 +659,7 @@ inline void DecodeDepthNormal( float4 enc, out float depth, out float3 normal )
     depth = DecodeFloatRG (enc.zw);
     normal = DecodeViewNormalStereo (enc);
 }
-
+// 解码DXT5nm格式的法线贴图
 inline fixed3 UnpackNormalDXT5nm (fixed4 packednormal)
 {
     fixed3 normal;
@@ -668,27 +668,27 @@ inline fixed3 UnpackNormalDXT5nm (fixed4 packednormal)
     return normal;
 }
 
-// Unpack normal as DXT5nm (1, y, 1, x) or BC5 (x, y, 0, 1)
+// Unpack normal as DXT5nm (1, y, 1, x) or BC5 (x, y, 0, 1) 可以同时解码DXT5nm和BC5两种格式的法线贴图
 // Note neutral texture like "bump" is (0, 0, 1, 1) to work with both plain RGB normal and DXT5nm/BC5
 fixed3 UnpackNormalmapRGorAG(fixed4 packednormal)
 {
     // This do the trick
-   packednormal.x *= packednormal.w;
+   packednormal.x *= packednormal.w;    // 无论哪种格式，x都是最终的扰动向量的x
 
     fixed3 normal;
-    normal.xy = packednormal.xy * 2 - 1;
-    normal.z = sqrt(1 - saturate(dot(normal.xy, normal.xy)));
+    normal.xy = packednormal.xy * 2 - 1;    // [0, 1] ==>> [-1, 1]
+    normal.z = sqrt(1 - saturate(dot(normal.xy, normal.xy)));   // z = sqrt(1 - x^2 - y^2)，当x^2+y^2>=0时z=0，否则z=1
     return normal;
 }
-inline fixed3 UnpackNormal(fixed4 packednormal)
+inline fixed3 UnpackNormal(fixed4 packednormal) // 解码法线纹理
 {
-#if defined(UNITY_NO_DXT5nm)
-    return packednormal.xyz * 2 - 1;
-#else
+#if defined(UNITY_NO_DXT5nm) // 无需解码
+    return packednormal.xyz * 2 - 1;    // [0, 1] ==>> [-1, 1]
+#else   // 需要解码
     return UnpackNormalmapRGorAG(packednormal);
 #endif
 }
-
+// 解码法线纹理并缩放扰动
 fixed3 UnpackNormalWithScale(fixed4 packednormal, float scale)
 {
 #ifndef UNITY_NO_DXT5nm
@@ -702,120 +702,120 @@ fixed3 UnpackNormalWithScale(fixed4 packednormal, float scale)
     return normal;
 }
 
-// Z buffer to linear 0..1 depth
+// Z buffer to linear 0..1 depth 从深度纹理中取得顶点深度值z，变换至观察空间中，然后映射到[0,1]区间内
 inline float Linear01Depth( float z )
 {
-    return 1.0 / (_ZBufferParams.x * z + _ZBufferParams.y);
+    return 1.0 / (_ZBufferParams.x * z + _ZBufferParams.y);     // UnityShaderVariables.cginc，L76
 }
-// Z buffer to linear depth
+// Z buffer to linear depth 从深度纹理中取得顶点深度值z，变换至观察空间中，然后映射到[0,1]区间内
 inline float LinearEyeDepth( float z )
 {
     return 1.0 / (_ZBufferParams.z * z + _ZBufferParams.w);
 }
 
-
-inline float2 UnityStereoScreenSpaceUVAdjustInternal(float2 uv, float4 scaleAndOffset)
+// 使用Graphics.Blit()进行后期处理效果时，如果启用了单程立体渲染，Blit中的纹理采样器不能自动地在由两个左右眼图像合并而成的可渲染纹理中进行定位采样，所以需要告诉着色器左右眼采样的修正
+inline float2 UnityStereoScreenSpaceUVAdjustInternal(float2 uv, float4 scaleAndOffset)    // scaleAndOffset: xy是缩放，zw是偏移，float4的采样器变量需要加上"_ST"
 {
     return uv.xy * scaleAndOffset.xy + scaleAndOffset.zw;
 }
 
-inline float4 UnityStereoScreenSpaceUVAdjustInternal(float4 uv, float4 scaleAndOffset)
+inline float4 UnityStereoScreenSpaceUVAdjustInternal(float4 uv, float4 scaleAndOffset) // 处理两组坐标
 {
     return float4(UnityStereoScreenSpaceUVAdjustInternal(uv.xy, scaleAndOffset), UnityStereoScreenSpaceUVAdjustInternal(uv.zw, scaleAndOffset));
 }
 
 #define UnityStereoScreenSpaceUVAdjust(x, y) UnityStereoScreenSpaceUVAdjustInternal(x, y)
-
+// 对单程立体渲染用到的左右眼图像，放到一张可渲染纹理的左右两边时要做的缩放和偏移操作，UnityShaderVariables.cginc,L 195
 #if defined(UNITY_SINGLE_PASS_STEREO)
 float2 TransformStereoScreenSpaceTex(float2 uv, float w)
 {
     float4 scaleOffset = unity_StereoScaleOffset[unity_StereoEyeIndex];
     return uv.xy * scaleOffset.xy + scaleOffset.zw * w;
 }
-
+// 对立体渲染时左右眼离屏纹理的形变操作
 inline float2 UnityStereoTransformScreenSpaceTex(float2 uv)
 {
     return TransformStereoScreenSpaceTex(saturate(uv), 1.0);
 }
 
-inline float4 UnityStereoTransformScreenSpaceTex(float4 uv)
+inline float4 UnityStereoTransformScreenSpaceTex(float4 uv) // 处理两组坐标
 {
     return float4(UnityStereoTransformScreenSpaceTex(uv.xy), UnityStereoTransformScreenSpaceTex(uv.zw));
 }
-inline float2 UnityStereoClamp(float2 uv, float4 scaleAndOffset)
+inline float2 UnityStereoClamp(float2 uv, float4 scaleAndOffset)    // scaleAndOffset: xy是缩放，zw是偏移
 {
     return float2(clamp(uv.x, scaleAndOffset.z, scaleAndOffset.z + scaleAndOffset.x), uv.y);
 }
-#else
+#else   // 如果不使用单程立体渲染，则前面定义的函数不做操作
 #define TransformStereoScreenSpaceTex(uv, w) uv
 #define UnityStereoTransformScreenSpaceTex(uv) uv
 #define UnityStereoClamp(uv, scaleAndOffset) uv
 #endif
 
-// Depth render texture helpers
-#define DECODE_EYEDEPTH(i) LinearEyeDepth(i)
-#define COMPUTE_EYEDEPTH(o) o = -UnityObjectToViewPos( v.vertex ).z
-#define COMPUTE_DEPTH_01 -(UnityObjectToViewPos( v.vertex ).z * _ProjectionParams.w)
-#define COMPUTE_VIEW_NORMAL normalize(mul((float3x3)UNITY_MATRIX_IT_MV, v.normal))
+// Depth render texture helpers 深度纹理Helper
+#define DECODE_EYEDEPTH(i) LinearEyeDepth(i)    // 从深度纹理中取得顶点深度值z，变换至观察空间中，然后映射到[0,1]区间内
+#define COMPUTE_EYEDEPTH(o) o = -UnityObjectToViewPos( v.vertex ).z // 取得顶点从世界空间变换到观察空间后的z值，并且取其相反数
+#define COMPUTE_DEPTH_01 -(UnityObjectToViewPos( v.vertex ).z * _ProjectionParams.w) // 取得顶点从世界空间变换到观察空间后的z值，并且取其相反数后映射到[0,1]范围内
+#define COMPUTE_VIEW_NORMAL normalize(mul((float3x3)UNITY_MATRIX_IT_MV, v.normal))  // 把顶点法线从世界空间变换到观察空间
 
 // Helpers used in image effects. Most image effects use the same
 // minimal vertex shader (vert_img).
-
+// 顶点着色器：简单的顶点描述结构体
 struct appdata_img
 {
-    float4 vertex : POSITION;
-    half2 texcoord : TEXCOORD0;
-    UNITY_VERTEX_INPUT_INSTANCE_ID
+    float4 vertex : POSITION;       // 顶点的齐次化位置坐标
+    half2 texcoord : TEXCOORD0;     // 顶点用到的第一层纹理坐标
+    UNITY_VERTEX_INPUT_INSTANCE_ID  // 硬件instance id
 };
-
+// 片元着色器：简单的片元描述结构体
 struct v2f_img
 {
-    float4 pos : SV_POSITION;
-    half2 uv : TEXCOORD0;
-    UNITY_VERTEX_INPUT_INSTANCE_ID
-    UNITY_VERTEX_OUTPUT_STEREO
+    float4 pos : SV_POSITION;       // 要传递给片元着色器的顶点坐标，裁剪空间
+    half2 uv : TEXCOORD0;           // 用到的第一层纹理映射坐标
+    UNITY_VERTEX_INPUT_INSTANCE_ID  //  硬件instance id
+    UNITY_VERTEX_OUTPUT_STEREO      // 立体渲染时的左右眼索引，UnityInstancing.cginc,L153
 };
-
+// 把纹理坐标从一个空间变换到另一个空间
 float2 MultiplyUV (float4x4 mat, float2 inUV) {
     float4 temp = float4 (inUV.x, inUV.y, 0, 0);
     temp = mul (mat, temp);
     return temp.xy;
 }
-
+// 顶点着色
 v2f_img vert_img( appdata_img v )
 {
     v2f_img o;
-    UNITY_INITIALIZE_OUTPUT(v2f_img, o);
+    UNITY_INITIALIZE_OUTPUT(v2f_img, o);    // 初始化结构体
     UNITY_SETUP_INSTANCE_ID(v);
     UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
 
-    o.pos = UnityObjectToClipPos (v.vertex);
-    o.uv = v.texcoord;
+    o.pos = UnityObjectToClipPos (v.vertex);    // 顶点坐标从模型空间转换到裁剪空间
+    o.uv = v.texcoord;      // 第一层纹理映射坐标
     return o;
 }
 
 // Projected screen position helpers
 #define V2F_SCREEN_TYPE float4
-
-inline float4 ComputeNonStereoScreenPos(float4 pos) {
-    float4 o = pos * 0.5f;
-    o.xy = float2(o.x, o.y*_ProjectionParams.x) + o.w;
+// 计算非立体渲染时的"屏幕坐标"(并不是屏幕上的点，返回的结果需要在片元着色器中进行透视除法，除以w，再乘以屏幕宽高，才能得到屏幕坐标)
+inline float4 ComputeNonStereoScreenPos(float4 pos) {   // pos是裁剪空间下的坐标，x,y还未除以w之前
+    float4 o = pos * 0.5f;  // (x/2, y/2, z/2, w/2)
+    o.xy = float2(o.x, o.y*_ProjectionParams.x) + o.w;      //ProjectionParams.x: 1 or -1 (-1 if projection is flipped)    投影是否翻转
     o.zw = pos.zw;
-    return o;
+    return o;   // (x/2 + w/2, y/2 +- w/2, z, w)；屏幕坐标uv = o.xy / o.w * screen.size;
 }
-
+// 从裁剪齐次坐标计算屏幕坐标
 inline float4 ComputeScreenPos(float4 pos) {
-    float4 o = ComputeNonStereoScreenPos(pos);
+    float4 o = ComputeNonStereoScreenPos(pos);          // 非立体渲染
 #if defined(UNITY_SINGLE_PASS_STEREO)
-    o.xy = TransformStereoScreenSpaceTex(o.xy, pos.w);
+    o.xy = TransformStereoScreenSpaceTex(o.xy, pos.w);  // 立体渲染
 #endif
     return o;
 }
-
+// 把当前屏幕内容截屏并保存在一个目标纹理时，需要知道在裁剪空间中的某一个点对应保存在目标纹理中的哪一个点
 inline float4 ComputeGrabScreenPos (float4 pos) {
-    #if UNITY_UV_STARTS_AT_TOP
+    #if UNITY_UV_STARTS_AT_TOP  // DX屏幕坐标系
     float scale = -1.0;
-    #else
+    #else   // GL屏幕坐标系
     float scale = 1.0;
     #endif
     float4 o = pos * 0.5f;
@@ -827,7 +827,7 @@ inline float4 ComputeGrabScreenPos (float4 pos) {
     return o;
 }
 
-// snaps post-transformed position to screen pixels
+// snaps post-transformed position to screen pixels 将视口坐标(ComputeScreenPos)转换成屏幕像素坐标
 inline float4 UnityPixelSnap (float4 pos)
 {
     float2 hpc = _ScreenParams.xy * 0.5f;
@@ -841,17 +841,17 @@ inline float4 UnityPixelSnap (float4 pos)
     pos.xy = pixelPos / hpc * pos.w;
     return pos;
 }
-
+// 从观察空间转换到裁剪空间
 inline float2 TransformViewToProjection (float2 v) {
     return mul((float2x2)UNITY_MATRIX_P, v);
 }
-
+// 从观察空间转换到裁剪空间
 inline float3 TransformViewToProjection (float3 v) {
     return mul((float3x3)UNITY_MATRIX_P, v);
 }
 
-// Shadow caster pass helpers
-
+// Shadow caster pass helpers 阴影处理相关的工具函数
+// 把一个float类型的阴影深度值编码进一个float4的RGBA颜色中
 float4 UnityEncodeCubeShadowDepth (float z)
 {
     #ifdef UNITY_USE_RGBA_FOR_POINT_SHADOWS
@@ -860,7 +860,7 @@ float4 UnityEncodeCubeShadowDepth (float z)
     return z;
     #endif
 }
-
+// 把一个float4类型的阴影颜色值解码成float类型的深度值
 float UnityDecodeCubeShadowDepth (float4 vals)
 {
     #ifdef UNITY_USE_RGBA_FOR_POINT_SHADOWS
