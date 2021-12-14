@@ -851,7 +851,7 @@ inline float3 TransformViewToProjection (float3 v) {
 }
 
 // Shadow caster pass helpers 阴影处理相关的工具函数
-// 把一个float类型的阴影深度值编码进一个float4的RGBA颜色中
+// 把一个float类型的阴影深度值编码进一个float4的RGBA颜色中，点光源的作用深度被存储在一个CubeMap中
 float4 UnityEncodeCubeShadowDepth (float z)
 {
     #ifdef UNITY_USE_RGBA_FOR_POINT_SHADOWS
@@ -870,7 +870,7 @@ float UnityDecodeCubeShadowDepth (float4 vals)
     #endif
 }
 
-
+// 将阴影投射者的坐标沿着法线做一定偏移后再变换至裁剪空间
 float4 UnityClipSpaceShadowCasterPos(float4 vertex, float3 normal)
 {
     float4 wPos = mul(unity_ObjectToWorld, vertex);
@@ -888,10 +888,10 @@ float4 UnityClipSpaceShadowCasterPos(float4 vertex, float3 normal)
         // scaled by world space texel size.
 
         float shadowCos = dot(wNormal, wLight);
-        float shadowSine = sqrt(1-shadowCos*shadowCos);
-        float normalBias = unity_LightShadowBias.z * shadowSine;
+        float shadowSine = sqrt(1-shadowCos*shadowCos); // 计算正弦值
+        float normalBias = unity_LightShadowBias.z * shadowSine;    // UnityShaderVariables.cginc, L160
 
-        wPos.xyz -= wNormal * normalBias;
+        wPos.xyz -= wNormal * normalBias;   // 沿法线进行偏移
     }
 
     return mul(UNITY_MATRIX_VP, wPos);
@@ -902,7 +902,7 @@ float4 UnityClipSpaceShadowCasterPos(float3 vertex, float3 normal)
     return UnityClipSpaceShadowCasterPos(float4(vertex, 1), normal);
 }
 
-
+// 将裁剪空间坐标的z值再做一定的偏移
 float4 UnityApplyLinearShadowBias(float4 clipPos)
 
 {
@@ -931,7 +931,7 @@ float4 UnityApplyLinearShadowBias(float4 clipPos)
 
 #if defined(SHADOWS_CUBE) && !defined(SHADOWS_CUBE_IN_DEPTH_TEX)
     // Rendering into point light (cubemap) shadows
-    #define V2F_SHADOW_CASTER_NOPOS float3 vec : TEXCOORD0;
+    #define V2F_SHADOW_CASTER_NOPOS float3 vec : TEXCOORD0; // 存储在世界坐标系下当前顶点到光源位置的连线向量
     #define TRANSFER_SHADOW_CASTER_NOPOS_LEGACY(o,opos) o.vec = mul(unity_ObjectToWorld, v.vertex).xyz - _LightPositionRange.xyz; opos = UnityObjectToClipPos(v.vertex);
     #define TRANSFER_SHADOW_CASTER_NOPOS(o,opos) o.vec = mul(unity_ObjectToWorld, v.vertex).xyz - _LightPositionRange.xyz; opos = UnityObjectToClipPos(v.vertex);
     #define SHADOW_CASTER_FRAGMENT(i) return UnityEncodeCubeShadowDepth ((length(i.vec) + unity_LightShadowBias.x) * _LightPositionRange.w);
@@ -944,7 +944,7 @@ float4 UnityApplyLinearShadowBias(float4 clipPos)
     #define V2F_SHADOW_CASTER_NOPOS_IS_EMPTY
     #define TRANSFER_SHADOW_CASTER_NOPOS_LEGACY(o,opos) \
         opos = UnityObjectToClipPos(v.vertex.xyz); \
-        opos = UnityApplyLinearShadowBias(opos);
+        opos = UnityApplyLinearShadowBias(opos);    
     #define TRANSFER_SHADOW_CASTER_NOPOS(o,opos) \
         opos = UnityClipSpaceShadowCasterPos(v.vertex, v.normal); \
         opos = UnityApplyLinearShadowBias(opos);
