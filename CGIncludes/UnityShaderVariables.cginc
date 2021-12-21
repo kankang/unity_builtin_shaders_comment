@@ -134,17 +134,17 @@ CBUFFER_START(UnityLighting)
     float4 unity_SpotDirection[8]; // view-space spot light directions, or (0,0,1,0) for non-spot
 
     // SH lighting environment      // 球谐光照方程所需的27个参数
-    half4 unity_SHAr;
-    half4 unity_SHAg;
-    half4 unity_SHAb;
-    half4 unity_SHBr;
+    half4 unity_SHAr;   // rgb对应l=1时，各项Y(m)与红色光分量对应的c(m)的乘积，a对应l=0时Y(m)常数值与对应c(m)的乘积
+    half4 unity_SHAg;   // 绿光分量
+    half4 unity_SHAb;   // 蓝光分量
+    half4 unity_SHBr;   // rgb对应l=2时，各项Y(m)与红色光分量对应的c(m)的乘积，a对应l=0时Y(m)常数值与对应c(m)的乘积
     half4 unity_SHBg;
     half4 unity_SHBb;
     half4 unity_SHC;
 
     // part of Light because it can be used outside of shadow distance
     fixed4 unity_OcclusionMaskSelector;     // 根据当前灯光index选择阴影遮罩对应的通道
-    fixed4 unity_ProbesOcclusion;           // 光探针相关
+    fixed4 unity_ProbesOcclusion;           // 光探针遮罩
 CBUFFER_END
 
 CBUFFER_START(UnityLightingOld)
@@ -311,12 +311,12 @@ CBUFFER_END
 #endif
 
 #if UNITY_LIGHT_PROBE_PROXY_VOLUME      // 某些平台不支持LPPV
-    UNITY_DECLARE_TEX3D_FLOAT(unity_ProbeVolumeSH);     // 声明光探针代理体的贴图
+    UNITY_DECLARE_TEX3D_FLOAT(unity_ProbeVolumeSH);     // 声明光探针代理体的球谐贴图
 
     CBUFFER_START(UnityProbeVolume)
-        // x = Disabled(0)/Enabled(1)
-        // y = Computation are done in global space(0) or local space(1)
-        // z = Texel size on U texture coordinate
+        // x = Disabled(0)/Enabled(1) 0:不启用，1：启用本光照体代理体
+        // y = Computation are done in global space(0) or local space(1) 0: 在世界空间中计算，1:在代理体模型空间中计算
+        // z = Texel size on U texture coordinate   表示体积纹理的宽度方向上纹素的大小（uv，纹素数的倒数）
         float4 unity_ProbeVolumeParams;     // 光探针代理体参数
 
         float4x4 unity_ProbeVolumeWorldToObject;    // 从世界空间转换到光探针代理体的变换矩阵

@@ -327,7 +327,7 @@ float3 ShadeVertexLights (float4 vertex, float3 normal)
 }
 
 // normal should be normalized, w=1.0
-half3 SHEvalLinearL0L1 (half4 normal)
+half3 SHEvalLinearL0L1 (half4 normal)  // 2阶(l = 1和l = 0时)球谐值
 {
     half3 x;
 
@@ -340,7 +340,7 @@ half3 SHEvalLinearL0L1 (half4 normal)
 }
 
 // normal should be normalized, w=1.0
-half3 SHEvalLinearL2 (half4 normal)
+half3 SHEvalLinearL2 (half4 normal) // 3阶（l = 2时）球谐值
 {
     half3 x1, x2;
     // 4 of the quadratic (L2) polynomials
@@ -358,7 +358,7 @@ half3 SHEvalLinearL2 (half4 normal)
 
 // normal should be normalized, w=1.0
 // output in active color space
-half3 ShadeSH9 (half4 normal)
+half3 ShadeSH9 (half4 normal)   // 1阶2阶3阶球谐值之和
 {
     // Linear + constant polynomial terms
     half3 res = SHEvalLinearL0L1 (normal);
@@ -373,7 +373,7 @@ half3 ShadeSH9 (half4 normal)
     return res;
 }
 
-// OBSOLETE: for backwards compatibility with 5.0
+// OBSOLETE: for backwards compatibility with 5.0 只保留l=2时的重建光照，现在已废弃
 half3 ShadeSH3Order(half4 normal)
 {
     // Quadratic polynomials
@@ -386,28 +386,28 @@ half3 ShadeSH3Order(half4 normal)
     return res;
 }
 
-#if UNITY_LIGHT_PROBE_PROXY_VOLUME
+#if UNITY_LIGHT_PROBE_PROXY_VOLUME  // 使用了光探针代理体LPPV
 
 // normal should be normalized, w=1.0
-half3 SHEvalLinearL0L1_SampleProbeVolume (half4 normal, float3 worldPos)
+half3 SHEvalLinearL0L1_SampleProbeVolume (half4 normal, float3 worldPos)    // 采样球谐值
 {
-    const float transformToLocal = unity_ProbeVolumeParams.y;
-    const float texelSizeX = unity_ProbeVolumeParams.z;
+    const float transformToLocal = unity_ProbeVolumeParams.y;   // 判断是在世界空间(0)还是模型空间中计算(1)
+    const float texelSizeX = unity_ProbeVolumeParams.z; // U坐标的纹素大小
 
-    //The SH coefficients textures and probe occlusion are packed into 1 atlas.
+    //The SH coefficients textures and probe occlusion are packed into 1 atlas. 把球谐函数的3阶系数以及光探针遮盖信息打包到一个纹素中
     //-------------------------
     //| ShR | ShG | ShB | Occ |
     //-------------------------
 
-    float3 position = (transformToLocal == 1.0f) ? mul(unity_ProbeVolumeWorldToObject, float4(worldPos, 1.0)).xyz : worldPos;
-    float3 texCoord = (position - unity_ProbeVolumeMin.xyz) * unity_ProbeVolumeSizeInv.xyz;
+    float3 position = (transformToLocal == 1.0f) ? mul(unity_ProbeVolumeWorldToObject, float4(worldPos, 1.0)).xyz : worldPos; // 世界坐标
+    float3 texCoord = (position - unity_ProbeVolumeMin.xyz) * unity_ProbeVolumeSizeInv.xyz; // 归一化纹理映射坐标
     texCoord.x = texCoord.x * 0.25f;
 
-    // We need to compute proper X coordinate to sample.
-    // Clamp the coordinate otherwize we'll have leaking between RGB coefficients
-    float texCoordX = clamp(texCoord.x, 0.5f * texelSizeX, 0.25f - 0.5f * texelSizeX);
+    // We need to compute proper X coordinate to sample. 从立体纹理坐标中采样得到球谐函数系数
+    // Clamp the coordinate otherwize we'll have leaking between RGB coefficients 
+    float texCoordX = clamp(texCoord.x, 0.5f * texelSizeX, 0.25f - 0.5f * texelSizeX);  // 对纹理进行采样时使用的纹理坐标按RGB分段压缩到长度为0.25的一个段中
 
-    // sampler state comes from SHr (all SH textures share the same sampler)
+    // sampler state comes from SHr (all SH textures share the same sampler) 依次取得红、绿、蓝颜色分量的球谐函数系数
     texCoord.x = texCoordX;
     half4 SHAr = UNITY_SAMPLE_TEX3D_SAMPLER(unity_ProbeVolumeSH, unity_ProbeVolumeSH, texCoord);
 
@@ -428,7 +428,7 @@ half3 SHEvalLinearL0L1_SampleProbeVolume (half4 normal, float3 worldPos)
 #endif
 
 // normal should be normalized, w=1.0
-half3 ShadeSH12Order (half4 normal)
+half3 ShadeSH12Order (half4 normal) // 保留l=0,1时的重建光照
 {
     // Linear + constant polynomial terms
     half3 res = SHEvalLinearL0L1 (normal);
