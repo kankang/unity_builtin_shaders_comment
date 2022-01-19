@@ -144,7 +144,7 @@ CBUFFER_START(UnityLighting)
 
     // part of Light because it can be used outside of shadow distance
     fixed4 unity_OcclusionMaskSelector;     // 根据当前灯光index选择阴影遮罩对应的通道
-    fixed4 unity_ProbesOcclusion;           // 光探针遮罩
+    fixed4 unity_ProbesOcclusion;           // 光探针遮罩，通过MaterialPropertyBlock.CopyProbeOcculusionArrayFrom方法赋值
 CBUFFER_END
 
 CBUFFER_START(UnityLightingOld)
@@ -161,7 +161,7 @@ CBUFFER_START(UnityShadows)
     float4 _LightSplitsNear;                // cascade split分割的4悠游子视截体的近平面z值
     float4 _LightSplitsFar;                 // cascade split分割的4悠游子视截体的远平面z值
     float4x4 unity_WorldToShadow[4];        // 从世界空间变换到阴影贴图空间，如果使用层叠式阴影贴图，数组各元素就表征4个阴影贴图各自所对应的阴影贴图空间
-    half4 _LightShadowData;                 // x = 阴影强度；y暂未使用；z = 1 / shadow far distance；w = shadow new distance
+    half4 _LightShadowData;                 // x = 阴影强度；y暂未使用；z = 1 / shadow far distance；w = shadow near distance
     float4 unity_ShadowFadeCenterAndType;   // 包含阴影的中心和阴影和类型
 CBUFFER_END
 

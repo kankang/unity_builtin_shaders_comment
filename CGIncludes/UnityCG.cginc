@@ -47,10 +47,10 @@
 
 #if defined(SHADER_API_D3D11) || defined(SHADER_API_PSSL) || defined(SHADER_API_METAL) || defined(SHADER_API_GLCORE) || defined(SHADER_API_GLES3) || defined(SHADER_API_VULKAN) || defined(SHADER_API_SWITCH) // D3D11, D3D12, XB1, PS4, iOS, macOS, tvOS, glcore, gles3, webgl2.0, Switch
 // Real-support for depth-format cube shadow map.
-#define SHADOWS_CUBE_IN_DEPTH_TEX
+#define SHADOWS_CUBE_IN_DEPTH_TEX   // 阴影深度Cube纹理（点光）
 #endif
 
-#define SCALED_NORMAL v.normal
+#define SCALED_NORMAL v.normal  // 顶点的法线
 
 
 // These constants must be kept in sync with RGBMRanges.h
@@ -930,7 +930,7 @@ float4 UnityApplyLinearShadowBias(float4 clipPos)
 
 
 #if defined(SHADOWS_CUBE) && !defined(SHADOWS_CUBE_IN_DEPTH_TEX)
-    // Rendering into point light (cubemap) shadows
+    // Rendering into point light (cubemap) shadows 渲染点光阴影（使用cubemap)
     #define V2F_SHADOW_CASTER_NOPOS float3 vec : TEXCOORD0; // 存储在世界坐标系下当前顶点到光源位置的连线向量
     #define TRANSFER_SHADOW_CASTER_NOPOS_LEGACY(o,opos) o.vec = mul(unity_ObjectToWorld, v.vertex).xyz - _LightPositionRange.xyz; opos = UnityObjectToClipPos(v.vertex);
     #define TRANSFER_SHADOW_CASTER_NOPOS(o,opos) o.vec = mul(unity_ObjectToWorld, v.vertex).xyz - _LightPositionRange.xyz; opos = UnityObjectToClipPos(v.vertex);
@@ -967,11 +967,11 @@ float4 UnityApplyLinearShadowBias(float4 clipPos)
 // ------------------------------------------------------------------
 //  Alpha helper
 
-#define UNITY_OPAQUE_ALPHA(outputAlpha) outputAlpha = 1.0
+#define UNITY_OPAQUE_ALPHA(outputAlpha) outputAlpha = 1.0      // 不透明明的alpha为1
 
 
 // ------------------------------------------------------------------
-//  Fog helpers
+//  Fog helpers 雾
 //
 //  multi_compile_fog Will compile fog variants.
 //  UNITY_FOG_COORDS(texcoordindex) Declares the fog data interpolator.

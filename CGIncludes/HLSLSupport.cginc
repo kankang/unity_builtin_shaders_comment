@@ -326,11 +326,11 @@ float4 texCUBEproj(samplerCUBE s, in float4 t)          { return texCUBE(s, t.xy
 // SAMPLE_DEPTH_TEXTURE_PROJ(sampler,uv): projected sample
 // SAMPLE_DEPTH_TEXTURE_LOD(sampler,uv): sample with LOD level
 
-    // Sample depth, just the red component.
+    // Sample depth, just the red component.    只采样深度值
 #   define SAMPLE_DEPTH_TEXTURE(sampler, uv) (tex2D(sampler, uv).r)
 #   define SAMPLE_DEPTH_TEXTURE_PROJ(sampler, uv) (tex2Dproj(sampler, uv).r)
 #   define SAMPLE_DEPTH_TEXTURE_LOD(sampler, uv) (tex2Dlod(sampler, uv).r)
-    // Sample depth, all components.
+    // Sample depth, all components.    采样所有深度分量
 #   define SAMPLE_RAW_DEPTH_TEXTURE(sampler, uv) (tex2D(sampler, uv))
 #   define SAMPLE_RAW_DEPTH_TEXTURE_PROJ(sampler, uv) (tex2Dproj(sampler, uv))
 #   define SAMPLE_RAW_DEPTH_TEXTURE_LOD(sampler, uv) (tex2Dlod(sampler, uv))
@@ -347,33 +347,33 @@ float4 texCUBEproj(samplerCUBE s, in float4 t)          { return texCUBE(s, t.xy
 // UNITY_SAMPLE_SHADOW_PROJ samples with a projected coordinate (UV and Z divided by w).
 
 
-#if !defined(SHADER_API_GLES)
+#if !defined(SHADER_API_GLES)   //  GLES2.0不支持原生的阴影比较采样函数
     // all platforms except GLES2.0 have built-in shadow comparison samplers
     #define SHADOWS_NATIVE
-#elif defined(SHADER_API_GLES) && defined(UNITY_ENABLE_NATIVE_SHADOW_LOOKUPS)
+#elif defined(SHADER_API_GLES) && defined(UNITY_ENABLE_NATIVE_SHADOW_LOOKUPS)   // GLES2.0中有原生阴影查找函数的也支持
     // GLES2.0 also has built-in shadow comparison samplers, but only on platforms where we pass UNITY_ENABLE_NATIVE_SHADOW_LOOKUPS from the editor
     #define SHADOWS_NATIVE
 #endif
 
 #if defined(SHADER_API_D3D11) || (defined(UNITY_COMPILER_HLSLCC) && defined(SHADOWS_NATIVE)) || defined(SHADER_API_PSSL)
-    // DX11 & hlslcc platforms and PS4: built-in PCF
-    #define UNITY_DECLARE_SHADOWMAP(tex) Texture2D_float tex; SamplerComparisonState sampler##tex
-    #define UNITY_DECLARE_TEXCUBE_SHADOWMAP(tex) TextureCube_float tex; SamplerComparisonState sampler##tex
-    #define UNITY_SAMPLE_SHADOW(tex,coord) tex.SampleCmpLevelZero (sampler##tex,(coord).xy,(coord).z)
-    #define UNITY_SAMPLE_SHADOW_PROJ(tex,coord) tex.SampleCmpLevelZero (sampler##tex,(coord).xy/(coord).w,(coord).z/(coord).w)
+    // DX11 & hlslcc platforms and PS4: built-in PCF, Dx11或者PS4，内置PCF
+    #define UNITY_DECLARE_SHADOWMAP(tex) Texture2D_float tex; SamplerComparisonState sampler##tex   // 声明阴影纹理Map，并指定采样比较器: https://docs.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-sampler
+    #define UNITY_DECLARE_TEXCUBE_SHADOWMAP(tex) TextureCube_float tex; SamplerComparisonState sampler##tex   // 声明阴影Cube纹理Map，并指定采样比较器
+    #define UNITY_SAMPLE_SHADOW(tex,coord) tex.SampleCmpLevelZero (sampler##tex,(coord).xy,(coord).z) // 在mipmap level 0下，采样阴影纹理并使用比较器比较结果
+    #define UNITY_SAMPLE_SHADOW_PROJ(tex,coord) tex.SampleCmpLevelZero (sampler##tex,(coord).xy/(coord).w,(coord).z/(coord).w) // 投影空间，在mipmap level 0下，采样阴影纹理并使用比较器比较结果
     #if defined(SHADER_API_GLCORE) || defined(SHADER_API_GLES3) || defined(SHADER_API_VULKAN) || defined(SHADER_API_SWITCH)
         // GLSL does not have textureLod(samplerCubeShadow, ...) support. GLES2 does not have core support for samplerCubeShadow, so we ignore it.
-        #define UNITY_SAMPLE_TEXCUBE_SHADOW(tex,coord) tex.SampleCmp (sampler##tex,(coord).xyz,(coord).w)
+        #define UNITY_SAMPLE_TEXCUBE_SHADOW(tex,coord) tex.SampleCmp (sampler##tex,(coord).xyz,(coord).w)   // 采样点光Cube阴影纹理
     #else
-       #define UNITY_SAMPLE_TEXCUBE_SHADOW(tex,coord) tex.SampleCmpLevelZero (sampler##tex,(coord).xyz,(coord).w)
+       #define UNITY_SAMPLE_TEXCUBE_SHADOW(tex,coord) tex.SampleCmpLevelZero (sampler##tex,(coord).xyz,(coord).w)   // 采样点光Cube阴影纹理
     #endif
 #else
     // Fallback / No built-in shadowmap comparison sampling: regular texture sample and do manual depth comparison
-    #define UNITY_DECLARE_SHADOWMAP(tex) sampler2D_float tex
-    #define UNITY_DECLARE_TEXCUBE_SHADOWMAP(tex) samplerCUBE_float tex
-    #define UNITY_SAMPLE_SHADOW(tex,coord) ((SAMPLE_DEPTH_TEXTURE(tex,(coord).xy) < (coord).z) ? 0.0 : 1.0)
-    #define UNITY_SAMPLE_SHADOW_PROJ(tex,coord) ((SAMPLE_DEPTH_TEXTURE_PROJ(tex,UNITY_PROJ_COORD(coord)) < ((coord).z/(coord).w)) ? 0.0 : 1.0)
-    #define UNITY_SAMPLE_TEXCUBE_SHADOW(tex,coord) ((SAMPLE_DEPTH_CUBE_TEXTURE(tex,(coord).xyz) < (coord).w) ? 0.0 : 1.0)
+    #define UNITY_DECLARE_SHADOWMAP(tex) sampler2D_float tex  // 声明阴影纹理Map
+    #define UNITY_DECLARE_TEXCUBE_SHADOWMAP(tex) samplerCUBE_float tex   // 声明阴影Cube纹理Map
+    #define UNITY_SAMPLE_SHADOW(tex,coord) ((SAMPLE_DEPTH_TEXTURE(tex,(coord).xy) < (coord).z) ? 0.0 : 1.0) // 采样阴影纹理
+    #define UNITY_SAMPLE_SHADOW_PROJ(tex,coord) ((SAMPLE_DEPTH_TEXTURE_PROJ(tex,UNITY_PROJ_COORD(coord)) < ((coord).z/(coord).w)) ? 0.0 : 1.0) // 投影空间下采样阴影纹理
+    #define UNITY_SAMPLE_TEXCUBE_SHADOW(tex,coord) ((SAMPLE_DEPTH_CUBE_TEXTURE(tex,(coord).xyz) < (coord).w) ? 0.0 : 1.0)   // 采样点光Cube阴影纹理
 #endif
 
 
@@ -445,14 +445,14 @@ float4 texCUBEproj(samplerCUBE s, in float4 t)          { return texCUBE(s, t.xy
 #endif
 
     // 2D arrays
-    #define UNITY_DECLARE_TEX2DARRAY_MS(tex) Texture2DMSArray<float> tex; SamplerState sampler##tex
-    #define UNITY_DECLARE_TEX2DARRAY_MS_NOSAMPLER(tex) Texture2DArray<float> tex
-    #define UNITY_DECLARE_TEX2DARRAY(tex) Texture2DArray tex; SamplerState sampler##tex
-    #define UNITY_DECLARE_TEX2DARRAY_NOSAMPLER(tex) Texture2DArray tex
+    #define UNITY_DECLARE_TEX2DARRAY_MS(tex) Texture2DMSArray<float> tex; SamplerState sampler##tex // 声明DX11格式的数组纹理纹理，带采样器
+    #define UNITY_DECLARE_TEX2DARRAY_MS_NOSAMPLER(tex) Texture2DArray<float> tex  // 声明DX11格式的数组纹理，不带采样器
+    #define UNITY_DECLARE_TEX2DARRAY(tex) Texture2DArray tex; SamplerState sampler##tex  // 声明数组纹理，带采样器
+    #define UNITY_DECLARE_TEX2DARRAY_NOSAMPLER(tex) Texture2DArray tex   // 声明数组纹理，不带采样器
     #define UNITY_ARGS_TEX2DARRAY(tex) Texture2DArray tex, SamplerState sampler##tex
     #define UNITY_PASS_TEX2DARRAY(tex) tex, sampler##tex
-    #define UNITY_SAMPLE_TEX2DARRAY(tex,coord) tex.Sample (sampler##tex,coord)
-    #define UNITY_SAMPLE_TEX2DARRAY_LOD(tex,coord,lod) tex.SampleLevel (sampler##tex,coord, lod)
+    #define UNITY_SAMPLE_TEX2DARRAY(tex,coord) tex.Sample (sampler##tex,coord)  // 声明数组纹理采样方法
+    #define UNITY_SAMPLE_TEX2DARRAY_LOD(tex,coord,lod) tex.SampleLevel (sampler##tex,coord, lod)    // 声明数组纹理在某LOD层的采样方法
     #define UNITY_SAMPLE_TEX2DARRAY_SAMPLER(tex,samplertex,coord) tex.Sample (sampler##samplertex,coord)
     #define UNITY_SAMPLE_TEX2DARRAY_SAMPLER_LOD(tex,samplertex,coord,lod) tex.SampleLevel (sampler##samplertex,coord,lod)
 
@@ -743,13 +743,13 @@ float4 texCUBEproj(samplerCUBE s, in float4 t)          { return texCUBE(s, t.xy
 #endif
 
 
-#if defined(UNITY_STEREO_INSTANCING_ENABLED) || defined(UNITY_STEREO_MULTIVIEW_ENABLED)
+#if defined(UNITY_STEREO_INSTANCING_ENABLED) || defined(UNITY_STEREO_MULTIVIEW_ENABLED) // 如果启用了立体视角
 
     #undef UNITY_DECLARE_DEPTH_TEXTURE_MS
-    #define UNITY_DECLARE_DEPTH_TEXTURE_MS(tex)  UNITY_DECLARE_TEX2DARRAY_MS (tex)
+    #define UNITY_DECLARE_DEPTH_TEXTURE_MS(tex)  UNITY_DECLARE_TEX2DARRAY_MS (tex)  // 将包含采样器的DX11纹理数组声明为深度纹理采样
 
     #undef UNITY_DECLARE_DEPTH_TEXTURE
-    #define UNITY_DECLARE_DEPTH_TEXTURE(tex) UNITY_DECLARE_TEX2DARRAY (tex)
+    #define UNITY_DECLARE_DEPTH_TEXTURE(tex) UNITY_DECLARE_TEX2DARRAY (tex)  // 将包含采样器的纹理数组声明为深度纹理采样
 
     #undef SAMPLE_DEPTH_TEXTURE
     #define SAMPLE_DEPTH_TEXTURE(sampler, uv) UNITY_SAMPLE_TEX2DARRAY(sampler, float3((uv).x, (uv).y, (float)unity_StereoEyeIndex)).r
@@ -774,13 +774,13 @@ float4 texCUBEproj(samplerCUBE s, in float4 t)          { return texCUBE(s, t.xy
 
     #define UNITY_DECLARE_SCREENSPACE_TEXTURE UNITY_DECLARE_TEX2DARRAY
     #define UNITY_SAMPLE_SCREENSPACE_TEXTURE(tex, uv) UNITY_SAMPLE_TEX2DARRAY(tex, float3((uv).xy, (float)unity_StereoEyeIndex))
-#else
-    #define UNITY_DECLARE_DEPTH_TEXTURE_MS(tex)  Texture2DMS<float> tex;
-    #define UNITY_DECLARE_DEPTH_TEXTURE(tex) sampler2D_float tex
-    #define UNITY_DECLARE_SCREENSPACE_SHADOWMAP(tex) sampler2D tex
-    #define UNITY_SAMPLE_SCREEN_SHADOW(tex, uv) tex2Dproj( tex, UNITY_PROJ_COORD(uv) ).r
-    #define UNITY_DECLARE_SCREENSPACE_TEXTURE(tex) sampler2D tex;
-    #define UNITY_SAMPLE_SCREENSPACE_TEXTURE(tex, uv) tex2D(tex, uv)
+#else // 未启用立体视角，声明的纹理贴图与纹理采样都是2D的
+    #define UNITY_DECLARE_DEPTH_TEXTURE_MS(tex)  Texture2DMS<float> tex;    // 声明深度纹理为DX11的2D纹理
+    #define UNITY_DECLARE_DEPTH_TEXTURE(tex) sampler2D_float tex    // 声明深度纹理为float类型的2D纹理
+    #define UNITY_DECLARE_SCREENSPACE_SHADOWMAP(tex) sampler2D tex  // 声明屏幕空间的阴影映射纹理为2D纹理
+    #define UNITY_SAMPLE_SCREEN_SHADOW(tex, uv) tex2Dproj( tex, UNITY_PROJ_COORD(uv) ).r    // 声明屏幕空间的阴影采样函数为
+    #define UNITY_DECLARE_SCREENSPACE_TEXTURE(tex) sampler2D tex;       // 声明屏幕空间纹理，后处理Blit copy时使用
+    #define UNITY_SAMPLE_SCREENSPACE_TEXTURE(tex, uv) tex2D(tex, uv)    // 场屏幕空间纹理采样方法，后处理Blit copy时使用
 #endif
 
 #endif // HLSL_SUPPORT_INCLUDED
