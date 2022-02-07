@@ -97,12 +97,12 @@ inline half DotClamped (half3 a, half3 b)
         return max(0.0h, dot(a, b));
     #endif
 }
-
+// lambert系数（光照方向与法线的余弦值）
 inline half LambertTerm (half3 normal, half3 lightDir)
 {
     return DotClamped (normal, lightDir);
 }
-
+// blinn系数(半角与法线的余弦值)
 inline half BlinnTerm (half3 normal, half3 halfDir)
 {
     return DotClamped (normal, halfDir);

@@ -18,12 +18,12 @@ CBUFFER_START(UnityMetaPass)
     int unity_VisualizationMode;
 CBUFFER_END
 
-
+// 元渲染输入数据结构体
 struct UnityMetaInput
 {
-    half3 Albedo;
-    half3 Emission;
-    half3 SpecularColor;
+    half3 Albedo;       // 反照率颜色
+    half3 Emission;     // 自发光颜色
+    half3 SpecularColor;    // 镜面反射颜色
 #ifdef EDITOR_VISUALIZATION
     float2 VizUV;
     float4 LightCoord;
@@ -284,7 +284,7 @@ float4 UnityMetaVertexPosition(float4 vertex, float2 uv1, float2 uv2, float4 lig
 float unity_OneOverOutputBoost;
 float unity_MaxOutputValue;
 float unity_UseLinearSpace;
-
+// 元渲染路径片元处理
 half4 UnityMetaFragment (UnityMetaInput IN)
 {
     half4 res = 0;

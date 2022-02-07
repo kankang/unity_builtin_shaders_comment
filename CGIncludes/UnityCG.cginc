@@ -28,12 +28,12 @@
 #ifdef UNITY_COLORSPACE_GAMMA
 #define unity_ColorSpaceGrey fixed4(0.5, 0.5, 0.5, 0.5)
 #define unity_ColorSpaceDouble fixed4(2.0, 2.0, 2.0, 2.0)
-#define unity_ColorSpaceDielectricSpec half4(0.220916301, 0.220916301, 0.220916301, 1.0 - 0.220916301)
+#define unity_ColorSpaceDielectricSpec half4(0.220916301, 0.220916301, 0.220916301, 1.0 - 0.220916301)  // 电解质介质的反射系数
 #define unity_ColorSpaceLuminance half4(0.22, 0.707, 0.071, 0.0) // Legacy: alpha is set to 0.0 to specify gamma mode
 #else // Linear values
 #define unity_ColorSpaceGrey fixed4(0.214041144, 0.214041144, 0.214041144, 0.5)
 #define unity_ColorSpaceDouble fixed4(4.59479380, 4.59479380, 4.59479380, 2.0)
-#define unity_ColorSpaceDielectricSpec half4(0.04, 0.04, 0.04, 1.0 - 0.04) // standard dielectric reflectivity coef at incident angle (= 4%)
+#define unity_ColorSpaceDielectricSpec half4(0.04, 0.04, 0.04, 1.0 - 0.04) // standard dielectric reflectivity coef at incident angle (= 4%) 电解质介质的反射系数
 #define unity_ColorSpaceLuminance half4(0.0396819152, 0.458021790, 0.00609653955, 1.0) // Legacy: alpha is set to 1.0 to specify linear mode
 #endif
 
@@ -934,7 +934,7 @@ float4 UnityApplyLinearShadowBias(float4 clipPos)
     #define V2F_SHADOW_CASTER_NOPOS float3 vec : TEXCOORD0; // 存储在世界坐标系下当前顶点到光源位置的连线向量
     #define TRANSFER_SHADOW_CASTER_NOPOS_LEGACY(o,opos) o.vec = mul(unity_ObjectToWorld, v.vertex).xyz - _LightPositionRange.xyz; opos = UnityObjectToClipPos(v.vertex);
     #define TRANSFER_SHADOW_CASTER_NOPOS(o,opos) o.vec = mul(unity_ObjectToWorld, v.vertex).xyz - _LightPositionRange.xyz; opos = UnityObjectToClipPos(v.vertex);
-    #define SHADOW_CASTER_FRAGMENT(i) return UnityEncodeCubeShadowDepth ((length(i.vec) + unity_LightShadowBias.x) * _LightPositionRange.w);
+    #define SHADOW_CASTER_FRAGMENT(i) return UnityEncodeCubeShadowDepth ((length(i.vec) + unity_LightShadowBias.x) * _LightPositionRange.w);    // 解决阴影渗漏（cubemap)
 
 #else
     // Rendering into directional or spot light shadows
@@ -943,12 +943,12 @@ float4 UnityApplyLinearShadowBias(float4 clipPos)
     // empty structs that could possibly be produced.
     #define V2F_SHADOW_CASTER_NOPOS_IS_EMPTY
     #define TRANSFER_SHADOW_CASTER_NOPOS_LEGACY(o,opos) \
-        opos = UnityObjectToClipPos(v.vertex.xyz); \
-        opos = UnityApplyLinearShadowBias(opos);    
+        opos = UnityObjectToClipPos(v.vertex.xyz); \        // 先转换到裁剪空间
+        opos = UnityApplyLinearShadowBias(opos);            // 再解决阴影渗漏
     #define TRANSFER_SHADOW_CASTER_NOPOS(o,opos) \
-        opos = UnityClipSpaceShadowCasterPos(v.vertex, v.normal); \
-        opos = UnityApplyLinearShadowBias(opos);
-    #define SHADOW_CASTER_FRAGMENT(i) return 0;
+        opos = UnityClipSpaceShadowCasterPos(v.vertex, v.normal); \    // 将阴影投射者的坐标沿着法线做一定偏移后再变换至裁剪空间
+        opos = UnityApplyLinearShadowBias(opos);            // 再解决阴影渗漏
+    #define SHADOW_CASTER_FRAGMENT(i) return 0; // 不是cubemap，没必要再做3d纹理偏移
 #endif
 
 // Declare all data needed for shadow caster pass output (any shadow directions/depths/distances as needed),
@@ -1048,19 +1048,19 @@ float4 UnityApplyLinearShadowBias(float4 clipPos)
 #define UNITY_FOG_LERP_COLOR(col,fogCol,fogFac) col.rgb = lerp((fogCol).rgb, (col).rgb, saturate(fogFac))
 
 
-#if defined(FOG_LINEAR) || defined(FOG_EXP) || defined(FOG_EXP2)
-    #if (SHADER_TARGET < 30) || defined(SHADER_API_MOBILE)
+#if defined(FOG_LINEAR) || defined(FOG_EXP) || defined(FOG_EXP2)    // 如果定义了雾效（线性、指数、指数的平方）
+    #if (SHADER_TARGET < 30) || defined(SHADER_API_MOBILE) // 如果小于Shader Model 3.0或移动设备
         // mobile or SM2.0: fog factor was already calculated per-vertex, so just lerp the color
-        #define UNITY_APPLY_FOG_COLOR(coord,col,fogCol) UNITY_FOG_LERP_COLOR(col,fogCol,(coord).x)
-    #else
-        // SM3.0 and PC/console: calculate fog factor and lerp fog color
+        #define UNITY_APPLY_FOG_COLOR(coord,col,fogCol) UNITY_FOG_LERP_COLOR(col,fogCol,(coord).x)  // lerp雾的颜色（顶点着色器已计算）
+    #else // Shader Model 3
+        // SM3.0 and PC/console: calculate fog factor and lerp fog color，重新计算雾效因子后，lerp雾的颜色
         #define UNITY_APPLY_FOG_COLOR(coord,col,fogCol) UNITY_CALC_FOG_FACTOR((coord).x); UNITY_FOG_LERP_COLOR(col,fogCol,unityFogFactor)
     #endif
-    #define UNITY_EXTRACT_FOG(name) float _unity_fogCoord = name.fogCoord
+    #define UNITY_EXTRACT_FOG(name) float _unity_fogCoord = name.fogCoord   // 声明雾的纹理坐标
     #define UNITY_EXTRACT_FOG_FROM_TSPACE(name) float _unity_fogCoord = name.tSpace2.y
     #define UNITY_EXTRACT_FOG_FROM_WORLD_POS(name) float _unity_fogCoord = name.worldPos.w
     #define UNITY_EXTRACT_FOG_FROM_EYE_VEC(name) float _unity_fogCoord = name.eyeVec.w
-#else
+#else // 如果没有定义雾效，以下声明为空
     #define UNITY_APPLY_FOG_COLOR(coord,col,fogCol)
     #define UNITY_EXTRACT_FOG(name)
     #define UNITY_EXTRACT_FOG_FROM_TSPACE(name)
@@ -1103,7 +1103,7 @@ float4 UnityApplyLinearShadowBias(float4 clipPos)
 #define UNITY_TRANSFER_DITHER_CROSSFADE(o,v)
 #define UNITY_TRANSFER_DITHER_CROSSFADE_HPOS(o,hpos)
 
-#ifdef LOD_FADE_CROSSFADE
+#ifdef LOD_FADE_CROSSFADE // 如果定义了LOD淡入淡出，则使用Dither算法进行Fade
     #define UNITY_APPLY_DITHER_CROSSFADE(vpos)  UnityApplyDitherCrossFade(vpos)
     sampler2D unity_DitherMask;
     void UnityApplyDitherCrossFade(float2 vpos)

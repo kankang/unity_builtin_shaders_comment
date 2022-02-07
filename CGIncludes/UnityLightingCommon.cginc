@@ -24,30 +24,30 @@ struct UnityGI  // 全局光照
     UnityLight light;
     UnityIndirect indirect;
 };
-
+// 全局光照数据结构体
 struct UnityGIInput
 {
-    UnityLight light; // pixel light, sent from the engine
+    UnityLight light; // pixel light, sent from the engine，引擎传递过来的直接光照
 
-    float3 worldPos;
-    half3 worldViewDir;
-    half atten;
-    half3 ambient;
+    float3 worldPos;    // 世界空间中的位置
+    half3 worldViewDir; // 世界空间中的观察方向
+    half atten; // 阴影衰减值
+    half3 ambient;  // 环境光颜色
 
     // interpolated lightmap UVs are passed as full float precision data to fragment shaders
     // so lightmapUV (which is used as a tmp inside of lightmap fragment shaders) should
     // also be full float precision to avoid data loss before sampling a texture.
-    float4 lightmapUV; // .xy = static lightmap UV, .zw = dynamic lightmap UV
+    float4 lightmapUV; // .xy = static lightmap UV, .zw = dynamic lightmap UV，xy静态光贴图的uv，zw动态光贴图的uv
 
     #if defined(UNITY_SPECCUBE_BLENDING) || defined(UNITY_SPECCUBE_BOX_PROJECTION) || defined(UNITY_ENABLE_REFLECTION_BUFFERS)
-    float4 boxMin[2];
+    float4 boxMin[2];   // 光探针所占据空间包围盒范围的边界极小值
     #endif
     #ifdef UNITY_SPECCUBE_BOX_PROJECTION
-    float4 boxMax[2];
-    float4 probePosition[2];
+    float4 boxMax[2];   // 光探针所占据空间包围盒范围的边界极大值
+    float4 probePosition[2];    // 光探针位置
     #endif
     // HDR cubemap properties, use to decompress HDR texture
-    float4 probeHDR[2];
+    float4 probeHDR[2]; // HDR光照探针，用来对HDR纹理进行解码
 };
 
 #endif

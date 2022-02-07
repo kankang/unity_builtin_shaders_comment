@@ -484,44 +484,44 @@ float4 IntegrateLD( UNITY_ARGS_TEXCUBE(tex),
 // ----------------------------------------------------------------------------
 // GlossyEnvironment - Function to integrate the specular lighting with default sky or reflection probes
 // ----------------------------------------------------------------------------
-struct Unity_GlossyEnvironmentData
+struct Unity_GlossyEnvironmentData  // 光泽度环境数据
 {
     // - Deferred case have one cubemap
     // - Forward case can have two blended cubemap (unusual should be deprecated).
 
     // Surface properties use for cubemap integration
-    half    roughness; // CAUTION: This is perceptualRoughness but because of compatibility this name can't be change :(
-    half3   reflUVW;
+    half    roughness; // CAUTION: This is perceptualRoughness but because of compatibility this name can't be change :( // 粗糙度
+    half3   reflUVW;    // 反射向量
 };
 
 // ----------------------------------------------------------------------------
-
+// 获取进行IBL所需要的结构体，光泽度数据
 Unity_GlossyEnvironmentData UnityGlossyEnvironmentSetup(half Smoothness, half3 worldViewDir, half3 Normal, half3 fresnel0)
 {
     Unity_GlossyEnvironmentData g;
 
-    g.roughness /* perceptualRoughness */   = SmoothnessToPerceptualRoughness(Smoothness);
-    g.reflUVW   = reflect(-worldViewDir, Normal);
+    g.roughness /* perceptualRoughness */   = SmoothnessToPerceptualRoughness(Smoothness); // 1-光滑度=粗糙度
+    g.reflUVW   = reflect(-worldViewDir, Normal);   // 反射向量
 
     return g;
 }
-
 // ----------------------------------------------------------------------------
+// 由粗糙度计算mipmap等级
 half perceptualRoughnessToMipmapLevel(half perceptualRoughness)
 {
-    return perceptualRoughness * UNITY_SPECCUBE_LOD_STEPS;
+    return perceptualRoughness * UNITY_SPECCUBE_LOD_STEPS;  // 6, UnityCG.cginc, L10
 }
-
 // ----------------------------------------------------------------------------
+// 由mipmap等级计算粗糙度
 half mipmapLevelToPerceptualRoughness(half mipmapLevel)
 {
-    return mipmapLevel / UNITY_SPECCUBE_LOD_STEPS;
+    return mipmapLevel / UNITY_SPECCUBE_LOD_STEPS;  // 6, UnityCG.cginc, L10
 }
-
 // ----------------------------------------------------------------------------
+// 将粗糙度进行变换
 half3 Unity_GlossyEnvironment (UNITY_ARGS_TEXCUBE(tex), half4 hdr, Unity_GlossyEnvironmentData glossIn)
 {
-    half perceptualRoughness = glossIn.roughness /* perceptualRoughness */ ;
+    half perceptualRoughness = glossIn.roughness /* perceptualRoughness */ ;    // 1 - 光滑度
 
 // TODO: CAUTION: remap from Morten may work only with offline convolution, see impact with runtime convolution!
 // For now disabled
@@ -534,16 +534,16 @@ half3 Unity_GlossyEnvironment (UNITY_ARGS_TEXCUBE(tex), half4 hdr, Unity_GlossyE
 
     perceptualRoughness = pow( 2/(n+2), 0.25);      // remap back to square root of real roughness (0.25 include both the sqrt root of the conversion and sqrt for going from roughness to perceptualRoughness)
 #else
-    // MM: came up with a surprisingly close approximation to what the #if 0'ed out code above does.
-    perceptualRoughness = perceptualRoughness*(1.7 - 0.7*perceptualRoughness);
+    // MM: came up with a surprisingly close approximation to what the #if 0'ed out code above does. newR = 1.7R - 0.7R^2
+    perceptualRoughness = perceptualRoughness*(1.7 - 0.7*perceptualRoughness); // 粗糙度和mipmap等级的关系不是线性关系，是二次项关系
 #endif
 
 
-    half mip = perceptualRoughnessToMipmapLevel(perceptualRoughness);
+    half mip = perceptualRoughnessToMipmapLevel(perceptualRoughness);   // 由粗糙度得到mipmap等级
     half3 R = glossIn.reflUVW;
-    half4 rgbm = UNITY_SAMPLE_TEXCUBE_LOD(tex, R, mip);
+    half4 rgbm = UNITY_SAMPLE_TEXCUBE_LOD(tex, R, mip); // 根据反射方向、LOD等级采样Cube纹理，得到一个HDR值
 
-    return DecodeHDR(rgbm, hdr);
+    return DecodeHDR(rgbm, hdr);    // 对采样得到的HDR值进行解码
 }
 
 // ----------------------------------------------------------------------------

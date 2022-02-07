@@ -8,7 +8,7 @@
 #define UNITY_SPECCUBE_LOD_EXPONENT (1.5)
 #endif
 #ifndef UNITY_SPECCUBE_LOD_STEPS
-#define UNITY_SPECCUBE_LOD_STEPS (6)
+#define UNITY_SPECCUBE_LOD_STEPS (6)    // 粗糙度和立方体贴图mipmap等级之间的系数
 #endif
 
 // Energy conservation for Specular workflow is Monochrome. For instance: Red metal will make diffuse Black not Cyan

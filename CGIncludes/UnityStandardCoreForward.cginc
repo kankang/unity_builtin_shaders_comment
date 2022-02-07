@@ -3,11 +3,11 @@
 #ifndef UNITY_STANDARD_CORE_FORWARD_INCLUDED
 #define UNITY_STANDARD_CORE_FORWARD_INCLUDED
 
-#if defined(UNITY_NO_FULL_STANDARD_SHADER)
+#if defined(UNITY_NO_FULL_STANDARD_SHADER) // 如果没有定义全版本的标准着色器，就使用简单标准着色器
 #   define UNITY_STANDARD_SIMPLE 1
 #endif
 
-#include "UnityStandardConfig.cginc"
+#include "UnityStandardConfig.cginc" // 根据是否使用全版本的标准着色器进行跳转
 
 #if UNITY_STANDARD_SIMPLE
     #include "UnityStandardCoreForwardSimple.cginc"

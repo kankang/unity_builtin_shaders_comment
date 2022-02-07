@@ -10,22 +10,22 @@
 #include "UnityStandardInput.cginc"
 #include "UnityMetaPass.cginc"
 #include "UnityStandardCore.cginc"
-
+// 元渲染顶点着色器输出数据
 struct v2f_meta
 {
-    float4 pos      : SV_POSITION;
-    float4 uv       : TEXCOORD0;
+    float4 pos      : SV_POSITION;  // 裁剪空间位置
+    float4 uv       : TEXCOORD0;    // 第一层纹理坐标
 #ifdef EDITOR_VISUALIZATION
     float2 vizUV        : TEXCOORD1;
     float4 lightCoord   : TEXCOORD2;
 #endif
 };
-
+// 元渲染路径顶点着色器函数
 v2f_meta vert_meta (VertexInput v)
 {
-    v2f_meta o;
-    o.pos = UnityMetaVertexPosition(v.vertex, v.uv1.xy, v.uv2.xy, unity_LightmapST, unity_DynamicLightmapST);
-    o.uv = TexCoords(v);
+    v2f_meta o; // 根据传入的顶点光照贴图纹理坐标，计算顶点在裁剪空间的位置
+    o.pos = UnityMetaVertexPosition(v.vertex, v.uv1.xy, v.uv2.xy, unity_LightmapST, unity_DynamicLightmapST);   // UnityMetaPass.cginc, L261
+    o.uv = TexCoords(v);    // 第一层纹理坐标
 #ifdef EDITOR_VISUALIZATION
     o.vizUV = 0;
     o.lightCoord = 0;
@@ -40,37 +40,37 @@ v2f_meta vert_meta (VertexInput v)
     return o;
 }
 
-// Albedo for lightmapping should basically be diffuse color.
+// Albedo for lightmapping should basically be diffuse color. 
 // But rough metals (black diffuse) still scatter quite a lot of light around, so
 // we want to take some of that into account too.
-half3 UnityLightmappingAlbedo (half3 diffuse, half3 specular, half smoothness)
+half3 UnityLightmappingAlbedo (half3 diffuse, half3 specular, half smoothness)  // 计算光照贴图的反照率颜色
 {
-    half roughness = SmoothnessToRoughness(smoothness);
+    half roughness = SmoothnessToRoughness(smoothness); // 平滑度转粗糙度
     half3 res = diffuse;
-    res += specular * roughness * 0.5;
+    res += specular * roughness * 0.5;  // 漫反射 + 镜面反射颜色 * 粗糙度 * 0.5
     return res;
 }
-
+// 元渲染路径片元着色器函数
 float4 frag_meta (v2f_meta i) : SV_Target
 {
     // we're interested in diffuse & specular colors,
     // and surface roughness to produce final albedo.
-    FragmentCommonData data = UNITY_SETUP_BRDF_INPUT (i.uv);
+    FragmentCommonData data = UNITY_SETUP_BRDF_INPUT (i.uv);    // 根据工作流声明并初始化通用片元数据
 
-    UnityMetaInput o;
-    UNITY_INITIALIZE_OUTPUT(UnityMetaInput, o);
+    UnityMetaInput o;   // 声明元渲染输入数据
+    UNITY_INITIALIZE_OUTPUT(UnityMetaInput, o); // 数据归0
 
 #ifdef EDITOR_VISUALIZATION
     o.Albedo = data.diffColor;
     o.VizUV = i.vizUV;
     o.LightCoord = i.lightCoord;
 #else
-    o.Albedo = UnityLightmappingAlbedo (data.diffColor, data.specColor, data.smoothness);
+    o.Albedo = UnityLightmappingAlbedo (data.diffColor, data.specColor, data.smoothness);  // 计算光照贴图的反照率颜色
 #endif
-    o.SpecularColor = data.specColor;
-    o.Emission = Emission(i.uv.xy);
+    o.SpecularColor = data.specColor;   // 镜面高光反射颜色
+    o.Emission = Emission(i.uv.xy);     // 自发光颜色
 
-    return UnityMetaFragment(o);
+    return UnityMetaFragment(o);    // 计算颜色并输出，UnityMetaPass.cginc, L288
 }
 
 #endif // UNITY_STANDARD_META_INCLUDED

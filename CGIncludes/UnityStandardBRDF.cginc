@@ -10,12 +10,12 @@
 //-----------------------------------------------------------------------------
 // Helper to convert smoothness to roughness
 //-----------------------------------------------------------------------------
-
+// 感性粗糙度转粗糙度
 float PerceptualRoughnessToRoughness(float perceptualRoughness)
 {
     return perceptualRoughness * perceptualRoughness;
 }
-
+// 粗糙度转感性粗糙度
 half RoughnessToPerceptualRoughness(half roughness)
 {
     return sqrt(roughness);
@@ -23,18 +23,18 @@ half RoughnessToPerceptualRoughness(half roughness)
 
 // Smoothness is the user facing name
 // it should be perceptualSmoothness but we don't want the user to have to deal with this name
-half SmoothnessToRoughness(half smoothness)
+half SmoothnessToRoughness(half smoothness) // 光滑度转粗糙度
 {
     return (1 - smoothness) * (1 - smoothness);
 }
-
+// 光滑度转感性粗糙度
 float SmoothnessToPerceptualRoughness(float smoothness)
 {
     return (1 - smoothness);
 }
 
 //-------------------------------------------------------------------------------------
-
+// 计算4次方
 inline half Pow4 (half x)
 {
     return x*x*x*x;
@@ -54,7 +54,7 @@ inline half4 Pow4 (half4 x)
 {
     return x*x*x*x;
 }
-
+// 计算5次方
 // Pow5 uses the same amount of instructions as generic pow(), but has 2 advantages:
 // 1) better instruction pipelining
 // 2) no need to worry about NaNs
@@ -77,19 +77,19 @@ inline half4 Pow5 (half4 x)
 {
     return x*x * x*x * x;
 }
-
+// 菲涅尔参数
 inline half3 FresnelTerm (half3 F0, half cosA)
 {
     half t = Pow5 (1 - cosA);   // ala Schlick interpoliation
-    return F0 + (1-F0) * t;
+    return F0 + (1-F0) * t;   // Cspec + (1 - Cspec)(1 - h * wi)^5
 }
-inline half3 FresnelLerp (half3 F0, half3 F90, half cosA)
+inline half3 FresnelLerp (half3 F0, half3 F90, half cosA)// 菲涅尔插值
 {
     half t = Pow5 (1 - cosA);   // ala Schlick interpoliation
-    return lerp (F0, F90, t);
+    return lerp (F0, F90, t);   //  Cspec + (1 - Cspec)(1 - h * wi)^5
 }
 // approximage Schlick with ^4 instead of ^5
-inline half3 FresnelLerpFast (half3 F0, half3 F90, half cosA)
+inline half3 FresnelLerpFast (half3 F0, half3 F90, half cosA)   // 快速菲涅尔，5次方=>4次方
 {
     half t = Pow4 (1 - cosA);
     return lerp (F0, F90, t);
@@ -98,12 +98,12 @@ inline half3 FresnelLerpFast (half3 F0, half3 F90, half cosA)
 // Note: Disney diffuse must be multiply by diffuseAlbedo / PI. This is done outside of this function.
 half DisneyDiffuse(half NdotV, half NdotL, half LdotH, half perceptualRoughness)
 {
-    half fd90 = 0.5 + 2 * LdotH * LdotH * perceptualRoughness;
+    half fd90 = 0.5 + 2 * LdotH * LdotH * perceptualRoughness;  // Fd90 = 0.5 + 2roughness * (h * wi) ^ 2
     // Two schlick fresnel term
-    half lightScatter   = (1 + (fd90 - 1) * Pow5(1 - NdotL));
-    half viewScatter    = (1 + (fd90 - 1) * Pow5(1 - NdotV));
+    half lightScatter   = (1 + (fd90 - 1) * Pow5(1 - NdotL));   // 入射光的散射
+    half viewScatter    = (1 + (fd90 - 1) * Pow5(1 - NdotV));   // 出射光的散射
 
-    return lightScatter * viewScatter;
+    return lightScatter * viewScatter;  // FdisneyDiffuse = （c/pi) * [1 + (Fd90 - 1) * (1 - n * wi) ^ 5] * [1 + (Fd90 - 1) * (1 - n * wo) ^ 5]
 }
 
 // NOTE: Visibility term here is the full form from Torrance-Sparrow model, it includes Geometric term: V = G / (N.L * N.V)
@@ -125,7 +125,7 @@ inline half SmithBeckmannVisibilityTerm (half NdotL, half NdotV, half roughness)
     half k = roughness * c;
     return SmithVisibilityTerm (NdotL, NdotV, k) * 0.25f; // * 0.25 is the 1/4 of the visibility term
 }
-
+// 计算几何衰减因子
 // Ref: http://jcgt.org/published/0003/02/03/paper.pdf
 inline float SmithJointGGXVisibilityTerm (float NdotL, float NdotV, float roughness)
 {
@@ -145,16 +145,16 @@ inline float SmithJointGGXVisibilityTerm (float NdotL, float NdotV, float roughn
     // Simplify visibility term: (2.0f * NdotL * NdotV) /  ((4.0f * NdotL * NdotV) * (lambda_v + lambda_l + 1e-5f));
     return 0.5f / (lambdaV + lambdaL + 1e-5f);  // This function is not intended to be running on Mobile,
                                                 // therefore epsilon is smaller than can be represented by half
-#else
+#else // 近似计算
     // Approximation of the above formulation (simplify the sqrt, not mathematically correct but close enough)
     float a = roughness;
     float lambdaV = NdotL * (NdotV * (1 - a) + a);
     float lambdaL = NdotV * (NdotL * (1 - a) + a);
 
 #if defined(SHADER_API_SWITCH)
-    return 0.5f / (lambdaV + lambdaL + UNITY_HALF_MIN);
+    return 0.5f / (lambdaV + lambdaL + UNITY_HALF_MIN);  // G = 1 / 2 * (V + L + 极小值)]
 #else
-    return 0.5f / (lambdaV + lambdaL + 1e-5f);
+    return 0.5f / (lambdaV + lambdaL + 1e-5f);  // G = 1 / 2 * (V + L + 极小值)]
 #endif
 
 #endif
@@ -408,24 +408,24 @@ half4 BRDF2_Unity_PBS (half3 diffColor, half3 specColor, half oneMinusReflectivi
 
     return half4(color, 1);
 }
-
-sampler2D_float unity_NHxRoughness;
+// 计算直接光照的BRDF3
+sampler2D_float unity_NHxRoughness; // 存储于bulit-in-resources的浮点纹理
 half3 BRDF3_Direct(half3 diffColor, half3 specColor, half rlPow4, half smoothness)
 {
     half LUT_RANGE = 16.0; // must match range in NHxRoughness() function in GeneratedTextures.cpp
-    // Lookup texture to save instructions
+    // Lookup texture to save instructions，通过夹角的4次方和光滑度对unity_NHxRoughness进行采样
     half specular = tex2D(unity_NHxRoughness, half2(rlPow4, SmoothnessToPerceptualRoughness(smoothness))).r * LUT_RANGE;
 #if defined(_SPECULARHIGHLIGHTS_OFF)
     specular = 0.0;
 #endif
 
-    return diffColor + specular * specColor;
+    return diffColor + specular * specColor;    // 漫反射颜色+高光反射颜色
 }
-
+// 计算间接光照的BRDF3
 half3 BRDF3_Indirect(half3 diffColor, half3 specColor, UnityIndirect indirect, half grazingTerm, half fresnelTerm)
 {
-    half3 c = indirect.diffuse * diffColor;
-    c += indirect.specular * lerp (specColor, grazingTerm, fresnelTerm);
+    half3 c = indirect.diffuse * diffColor; // 自身漫反射颜色乘以间接光照系数
+    c += indirect.specular * lerp (specColor, grazingTerm, fresnelTerm);    // 计算间接光照的镜面反射与自身镜面反射插值的乘积
     return c;
 }
 

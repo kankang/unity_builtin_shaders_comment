@@ -188,7 +188,7 @@ half4 LPPV_SampleProbeOcclusion(float3 worldPos)
 #endif //#if UNITY_LIGHT_PROBE_PROXY_VOLUME
 
 // ------------------------------------------------------------------
-// Used by the forward rendering path   前向渲染路径
+// Used by the forward rendering path   前向渲染路径，采样烘焙的AO
 fixed UnitySampleBakedOcclusion (float2 lightmapUV, float3 worldPos)
 {
     #if defined (SHADOWS_SHADOWMASK)    // 启用了阴影蒙板
