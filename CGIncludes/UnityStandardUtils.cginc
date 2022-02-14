@@ -47,7 +47,7 @@ inline half3 DiffuseAndSpecularFromMetallic (half3 albedo, half metallic, out ha
 {
     specColor = lerp (unity_ColorSpaceDielectricSpec.rgb, albedo, metallic); // 计算反射颜色，根据金属度对电介质颜色和反照贴图的插值
     oneMinusReflectivity = OneMinusReflectivityFromMetallic(metallic);  // 计算 1-反射强度（漫反射强度）
-    return albedo * oneMinusReflectivity; // 返回温反射颜色
+    return albedo * oneMinusReflectivity; // 返回漫反射颜色
 }
 // 漫反射预乘alpha，交根据材质的金属性对alpha进行处理
 inline half3 PreMultiplyAlpha (half3 diffColor, half alpha, half oneMinusReflectivity, out half outModifiedAlpha)
