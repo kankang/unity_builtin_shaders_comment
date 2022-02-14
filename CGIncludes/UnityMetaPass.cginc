@@ -5,17 +5,17 @@
 
 
 CBUFFER_START(UnityMetaPass)
-    // x = use uv1 as raster position
-    // y = use uv2 as raster position
+    // x = use uv1 as raster position   本次顶点Pass处理静态光照贴图的uv
+    // y = use uv2 as raster position   本次顶点Pass处理动态光照贴图的uv
     bool4 unity_MetaVertexControl;
 
-    // x = return albedo
-    // y = return normal
+    // x = return albedo    当次片元pass返回反照率颜色
+    // y = return normal    当次片元pass返回自发光颜色 normal???
     bool4 unity_MetaFragmentControl;
 
     // Control which VisualizationMode we will
     // display in the editor
-    int unity_VisualizationMode;
+    int unity_VisualizationMode;    // 不为0时，在Editor中显示meta pass的效果
 CBUFFER_END
 
 // 元渲染输入数据结构体
@@ -261,55 +261,55 @@ float2 UnityMetaVizUV(int uvIndex, float2 uv0, float2 uv1, float2 uv2, float4 st
 float4 UnityMetaVertexPosition(float4 vertex, float2 uv1, float2 uv2, float4 lightmapST, float4 dynlightmapST)
 {
 #if !defined(EDITOR_VISUALIZATION)
-    if (unity_MetaVertexControl.x)
+    if (unity_MetaVertexControl.x)  // 处理静态光照贴图
     {
-        vertex.xy = uv1 * lightmapST.xy + lightmapST.zw;
+        vertex.xy = uv1 * lightmapST.xy + lightmapST.zw;    // uv1:顶点第一层纹理坐标，lightmapST:静态光照贴图的tiling和offset
         // OpenGL right now needs to actually use incoming vertex position,
         // so use it in a very dummy way
         vertex.z = vertex.z > 0 ? 1.0e-4f : 0.0f;
     }
-    if (unity_MetaVertexControl.y)
+    if (unity_MetaVertexControl.y)  // 处理动态光照贴图
     {
-        vertex.xy = uv2 * dynlightmapST.xy + dynlightmapST.zw;
+        vertex.xy = uv2 * dynlightmapST.xy + dynlightmapST.zw;    // uv2:顶点第二层纹理坐标，dynlightmapST:动态光照贴图的tiling和offset
         // OpenGL right now needs to actually use incoming vertex position,
         // so use it in a very dummy way
         vertex.z = vertex.z > 0 ? 1.0e-4f : 0.0f;
     }
-    return mul(UNITY_MATRIX_VP, float4(vertex.xyz, 1.0));
+    return mul(UNITY_MATRIX_VP, float4(vertex.xyz, 1.0));   // 变换到裁剪空间
 #else
     return UnityObjectToClipPos(vertex);
 #endif
 }
 
-float unity_OneOverOutputBoost;
-float unity_MaxOutputValue;
-float unity_UseLinearSpace;
+float unity_OneOverOutputBoost;     // Scene选项卡中的Alebdo Boost值的倒数，AlbeDo Boost的范围是[1, 10]，所以unity_OneOverOutputBoost的范围是[0.1, 1]
+float unity_MaxOutputValue;         // 反照率颜色经过unity_OneOverOutputBoost调整后，不能超出的最大值
+float unity_UseLinearSpace;         // 当前颜色空间是否是线性空间
 // 元渲染路径片元处理
 half4 UnityMetaFragment (UnityMetaInput IN)
 {
     half4 res = 0;
-#if !defined(EDITOR_VISUALIZATION)
-    if (unity_MetaFragmentControl.x)
+#if !defined(EDITOR_VISUALIZATION)  // 编辑器非可视版本以及运行时
+    if (unity_MetaFragmentControl.x)    // 输出反照率颜色
     {
         res = half4(IN.Albedo,1);
 
-        // d3d9 shader compiler doesn't like NaNs and infinity.
+        // d3d9 shader compiler doesn't like NaNs and infinity. d3d9不支持NaNs和无穷大，metal也一样
         unity_OneOverOutputBoost = saturate(unity_OneOverOutputBoost);
 
         // Apply Albedo Boost from LightmapSettings.
-        res.rgb = clamp(pow(res.rgb, unity_OneOverOutputBoost), 0, unity_MaxOutputValue);
+        res.rgb = clamp(pow(res.rgb, unity_OneOverOutputBoost), 0, unity_MaxOutputValue);   // 指数调整颜色后，让颜色保持在[0, unity_MaxOutputValue]之间
     }
-    if (unity_MetaFragmentControl.y)
+    if (unity_MetaFragmentControl.y)    // 输出自发光颜色
     {
         half3 emission;
         if (unity_UseLinearSpace)
-            emission = IN.Emission;
+            emission = IN.Emission;     // 线性空间
         else
-            emission = GammaToLinearSpace(IN.Emission);
+            emission = GammaToLinearSpace(IN.Emission); // Gamma空间
 
         res = half4(emission, 1.0);
     }
-#else
+#else   // 编辑器模式可视化版本
     if ( unity_VisualizationMode == EDITORVIZ_PBR_VALIDATION_ALBEDO)
     {
         res = UnityMeta_pbrAlbedo(IN);
